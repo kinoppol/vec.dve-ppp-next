@@ -72,12 +72,33 @@ $initials = mb_substr(Auth::name(), 0, 2);
         <div style="font-weight:600"><?= e(Auth::name()) ?></div>
         <div class="muted" style="font-size:11px"><?= e(Auth::user()['scope'] ?? '') ?></div>
       </div>
-      <form method="post" action="<?= e(url('logout')) ?>">
-        <?= Csrf::field() ?>
-        <button class="btn btn-sm" type="submit">ออก</button>
-      </form>
+      <a class="btn btn-sm" href="#logout-confirm">ออก</a>
     </div>
+
   <?php else: ?>
     <a class="btn btn-secondary" href="<?= e(url('login')) ?>">เข้าสู่ระบบ</a>
   <?php endif; ?>
 </header>
+
+<?php if (Auth::check()): ?>
+  <?php /* กล่องยืนยันออกจากระบบ — เปิด/ปิดด้วย :target ล้วน ๆ ไม่ใช้ JavaScript
+           ต้องอยู่นอก <header> เพราะแถบบนเป็น flex + sticky ถ้าวางไว้ข้างในกล่อง
+           จะกลายเป็น flex child และติดอยู่ใน stacking context ของแถบบน
+           ปุ่มยืนยันจริงยังเป็น POST พร้อม CSRF เหมือนเดิม */ ?>
+  <div class="modal no-print" id="logout-confirm" role="dialog" aria-modal="true" aria-labelledby="logout-confirm-title">
+    <a class="modal-backdrop" href="#" aria-label="ปิดกล่องยืนยัน"></a>
+    <div class="modal-card">
+      <h2 id="logout-confirm-title">ออกจากระบบ</h2>
+      <p>ต้องการออกจากระบบในนาม <strong><?= e(Auth::name()) ?></strong> ใช่หรือไม่<br>
+        <span class="hint">ข้อมูลที่ยังไม่ได้กดบันทึกในหน้าที่เปิดค้างไว้จะหายไป</span>
+      </p>
+      <div class="modal-actions">
+        <a class="btn btn-ghost" href="#">ยกเลิก</a>
+        <form method="post" action="<?= e(url('logout')) ?>">
+          <?= Csrf::field() ?>
+          <button class="btn btn-primary" type="submit">ออกจากระบบ</button>
+        </form>
+      </div>
+    </div>
+  </div>
+<?php endif; ?>

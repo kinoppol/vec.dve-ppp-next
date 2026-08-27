@@ -409,6 +409,26 @@ main.content { flex: 1; min-width: 0; padding: var(--s-6); }
 }
 .pagination .is-on { background: var(--brand); color: var(--on-brand); border-color: var(--brand); }
 
+/* ------------------------------------------------------- กล่องยืนยัน (modal) -- */
+/* เปิด/ปิดด้วย :target ล้วน ๆ ตามกติกาห้ามใช้ JavaScript
+   ผลข้างเคียงที่ยอมรับ: โฟกัสไม่ถูกดักไว้ในกล่อง และปิดด้วยปุ่ม Esc ไม่ได้
+   จึงต้องมีทั้งปุ่ม "ยกเลิก" และพื้นหลังที่กดปิดได้ */
+.modal { display: none; }
+.modal:target {
+  display: flex; position: fixed; inset: 0; z-index: 50;
+  align-items: center; justify-content: center; padding: var(--s-6);
+}
+.modal-backdrop { position: absolute; inset: 0; background: rgba(31, 26, 28, .55); }
+html[data-theme="dark"] .modal-backdrop { background: rgba(0, 0, 0, .65); }
+.modal-card {
+  position: relative; width: 100%; max-width: 420px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-lg); padding: var(--s-6);
+}
+.modal-card h2 { margin-bottom: var(--s-3); }
+.modal-card p { margin-bottom: var(--s-6); line-height: 1.7; }
+.modal-actions { display: flex; gap: var(--s-2); justify-content: flex-end; flex-wrap: wrap; }
+
 /* --------------------------------------------------- กระดานถามตอบ (board) -- */
 .topic-list { display: grid; gap: var(--s-3); }
 .topic-item {
