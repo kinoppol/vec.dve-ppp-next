@@ -1,0 +1,19 @@
+# ไฟล์ตั้งค่าที่ install.php สร้าง — ต่างกันในแต่ละเครื่อง
+/config/config.php
+
+# สถานะการติดตั้งและ log
+/storage/installed.lock
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/cache/*
+!/storage/cache/.gitkeep
+
+# ไฟล์ที่ผู้ใช้อัปโหลด
+/uploads/reports/*
+!/uploads/reports/.gitkeep
+
+# ระบบปฏิบัติการ / เครื่องมือ
+Thumbs.db
+desktop.ini
+.DS_Store
+/vendor/

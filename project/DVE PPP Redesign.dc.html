@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+--brand-50:#FBF0F2;--brand-100:#F5DDE1;--brand-200:#E6B3BC;--brand-300:#CE7B89;--brand-400:#B14A5C;
+--brand-500:#94293D;--brand-600:#7F2233;--brand-700:#6D1A26;--brand-800:#5E1520;--brand-900:#4A0F18;
+--bg:#F6F4F5;--surface:#FFFFFF;--surface-2:#FBF9FA;--line:#E4DEE0;--line-2:#EFEAEB;
+--ink:#1F1A1C;--ink-2:#5C5257;--ink-3:#8B8085;--brand:#6D1A26;--brand-soft:#FBF0F2;--on-brand:#FFFFFF;
+--ok:#0F7B3D;--ok-bg:#E8F5EE;--warn:#B45309;--warn-bg:#FDF3E7;--err:#D92D20;--err-bg:#FDECEA;
+--info:#1B6DA8;--info-bg:#E9F2F9;--mute:#6B7280;--mute-bg:#F1F1F2;
+--shadow:0 1px 2px rgba(31,26,28,.06),0 2px 8px rgba(31,26,28,.05);
+}
+html[data-theme="dark"]{
+--bg:#161113;--surface:#1E1719;--surface-2:#251D20;--line:#352A2E;--line-2:#2C2326;
+--ink:#F3EEEF;--ink-2:#B7A9AE;--ink-3:#8B7C81;--brand:#B14A5C;--brand-soft:#2A1C20;--on-brand:#FFFFFF;
+--ok:#3DBE72;--ok-bg:#16291F;--warn:#F0A44A;--warn-bg:#2C2115;--err:#FF6B5E;--err-bg:#2E1A18;
+--info:#5AB0E6;--info-bg:#15242E;--mute:#9CA3AF;--mute-bg:#262123;
+--shadow:0 1px 2px rgba(0,0,0,.4),0 2px 10px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Sarabun,system-ui,sans-serif;font-size:16px;line-height:1.65}
+a{color:var(--brand);text-decoration:none}
+a:hover{color:var(--brand-500);text-decoration:underline}
+button{font-family:inherit}
+.nw{white-space:nowrap}
+@media(max-width:1000px){.hide-sm{display:none}}
+input,select{font-family:inherit}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+::selection{background:var(--brand-100);color:var(--brand-900)}
+.print-only{display:none}
+@media print{
+  html[data-theme]{--bg:#fff;--surface:#fff;--surface-2:#fff;--ink:#000;--ink-2:#333;--ink-3:#555;--line:#999;--line-2:#ccc;--shadow:none}
+  body{background:#fff;font-size:11pt}
+  .no-print{display:none !important}
+  .print-only{display:block}
+  main{padding:0 !important}
+  table{page-break-inside:auto}
+  tr,td,th{page-break-inside:avoid}
+  thead{display:table-header-group}
+  th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:A4 landscape;margin:12mm}
+}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:var(--bg)">
+
+<div class="no-print" style="display:flex;align-items:center;gap:16px;padding:0 20px;height:60px;background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40">
+  <div style="display:flex;align-items:center;gap:10px;flex:none">
+    <div style="width:34px;height:34px;border:1px dashed var(--line);background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--ink-3);border-radius:8px">โลโก้</div>
+    <div>
+      <div style="font-size:14px;font-weight:700;letter-spacing:.2px">DVE PPP</div>
+      <div class="hide-sm" style="font-size:11px;color:var(--ink-3);line-height:1.2">ระบบติดตามความร่วมมือ</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:4px;padding:3px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+      <button onClick="{{ t.go }}" style="padding:6px 12px;font-size:13px;font-weight:500;border:0;border-radius:7px;cursor:pointer;white-space:nowrap;background:{{ t.bg }};color:{{ t.fg }}">{{ t.label }}</button>
+    </sc-for>
+  </div>
+
+  <div style="flex:1"></div>
+
+  <div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--brand-soft);border:1px solid var(--line);border-radius:10px">
+    <span class="nw" style="font-size:11px;color:var(--ink-2)">ปีการศึกษา</span>
+    <select value="{{ year }}" onChange="{{ setYear }}" style="border:0;background:transparent;color:var(--ink);font-size:13px;font-weight:600;cursor:pointer">
+      <option value="2569">2569</option>
+      <option value="2568">2568</option>
+      <option value="2567">2567</option>
+    </select>
+  </div>
+
+  <button onClick="{{ goLogin }}" style="padding:8px 13px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--line);background:var(--surface-2);color:var(--brand);border-radius:9px;cursor:pointer">เข้าสู่ระบบ</button>
+
+  <button onClick="{{ toggleTheme }}" title="สลับโหมดสว่าง/มืด" style="width:38px;height:38px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:10px;cursor:pointer;font-size:15px">{{ themeIcon }}</button>
+
+  <div style="display:flex;align-items:center;gap:9px;padding-left:12px;border-left:1px solid var(--line)">
+    <div style="width:32px;height:32px;border-radius:50%;background:var(--brand);color:var(--on-brand);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">สอ</div>
+    <div class="hide-sm nw" style="font-size:12px;line-height:1.3">
+      <div style="font-weight:600">{{ userName }}</div>
+      <div style="color:var(--ink-3);font-size:11px">{{ userRole }}</div>
+    </div>
+  </div>
+</div>
+
+<sc-if value="{{ isImpersonating }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:10px;padding:9px 20px;background:var(--warn-bg);border-bottom:1px solid var(--line);font-size:13px;color:var(--warn)">
+  <span>⚠</span><span>โหมดสวมสิทธิ์ — กำลังดูข้อมูลในฐานะ <strong>วิทยาลัยเทคนิคกาญจนบุรี</strong></span>
+  <button style="margin-left:auto;padding:4px 10px;font-size:12px;border:1px solid var(--warn);background:transparent;color:var(--warn);border-radius:8px;cursor:pointer">ออกจากโหมดสวมสิทธิ์</button>
+</div>
+</sc-if>
+
+<div style="display:flex;align-items:flex-start">
+
+<sc-if value="{{ showSidebar }}" hint-placeholder-val="{{ false }}">
+<nav class="no-print" style="width:236px;flex:none;background:var(--surface);border-right:1px solid var(--line);min-height:calc(100vh - 60px);padding:16px 12px;position:sticky;top:60px">
+  <div style="font-size:10.5px;font-weight:600;letter-spacing:.9px;color:var(--ink-3);padding:0 10px 8px">{{ sideTitle }}</div>
+  <sc-for list="{{ sideNav }}" as="item" hint-placeholder-count="7">
+    <button onClick="{{ item.go }}" style="width:100%;display:flex;align-items:center;gap:11px;padding:9px 10px;margin-bottom:2px;border:0;border-radius:9px;cursor:pointer;text-align:left;font-size:13.5px;font-weight:{{ item.weight }};background:{{ item.bg }};color:{{ item.fg }}">
+      <span style="width:18px;text-align:center;font-size:14px">{{ item.icon }}</span>
+      <span style="flex:1">{{ item.label }}</span>
+      <span style="font-size:11px;color:var(--ink-3)">{{ item.badge }}</span>
+    </button>
+  </sc-for>
+  <div style="height:1px;background:var(--line);margin:14px 6px"></div>
+  <div style="padding:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px">
+    <div style="font-size:11px;color:var(--ink-3)">นิคมฯ ที่กำลังทำงาน</div>
+    <div style="font-size:12.5px;font-weight:600;margin-top:3px;line-height:1.4">{{ activeEstate }}</div>
+    <button onClick="{{ goEstatePicker }}" style="margin-top:8px;width:100%;padding:6px;font-size:12px;border:1px solid var(--line);background:var(--surface);color:var(--brand);border-radius:8px;cursor:pointer;font-weight:600">เปลี่ยนนิคมฯ</button>
+  </div>
+</nav>
+</sc-if>
+
+<main style="flex:1;min-width:0">
+<div class="print-only" style="padding:0 0 12px;border-bottom:2px solid #000;margin-bottom:14px">
+  <div style="font-size:15pt;font-weight:700">ระบบติดตามความร่วมมืออาชีวศึกษากับสถานประกอบการ (DVE PPP)</div>
+  <div style="font-size:10pt;color:#333">สำนักงานคณะกรรมการการอาชีวศึกษา · ปีการศึกษา {{ year }} · พิมพ์เมื่อ 26/08/2569</div>
+</div>
+
+<sc-if value="{{ showHome }}" hint-placeholder-val="{{ true }}">
+<div>
+  <section style="padding:52px 40px 40px;background:var(--surface);border-bottom:1px solid var(--line)">
+    <div style="max-width:1180px;margin:0 auto">
+      <div style="display:inline-block;padding:4px 10px;background:var(--brand-soft);color:var(--brand);font-size:12px;font-weight:600;border-radius:20px;margin-bottom:14px">ปีการศึกษา {{ year }}</div>
+      <h1 style="margin:0;font-size:38px;font-weight:700;line-height:1.3;max-width:760px;text-wrap:pretty">ความต้องการกำลังคนอาชีวศึกษาในนิคมอุตสาหกรรมทั่วประเทศ</h1>
+      <p style="margin:12px 0 0;font-size:16.5px;color:var(--ink-2);max-width:680px">ข้อมูลจากแบบสำรวจ PPP-002 ที่สำนักงานอาชีวศึกษาจังหวัดบันทึกเข้าระบบ อัปเดตล่าสุด 24/08/2569</p>
+
+      <div style="margin-top:32px;display:grid;grid-template-columns:1.55fr 1fr;gap:28px;align-items:start">
+        <div style="border:1px solid var(--line);border-radius:12px;padding:20px;background:var(--surface-2)">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px">
+            <div>
+              <div style="font-size:15px;font-weight:600">ความต้องการกำลังคนรายภาค</div>
+              <div style="font-size:12.5px;color:var(--ink-3)">หน่วย: คน · แยกฝึกงาน / ทวิภาคี</div>
+            </div>
+            <div style="display:flex;gap:14px;font-size:12px;color:var(--ink-2)">
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:11px;height:11px;background:var(--brand);border-radius:3px"></span>ฝึกงาน</span>
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:11px;height:11px;background:var(--brand-300);border-radius:3px"></span>ทวิภาคี</span>
+            </div>
+          </div>
+          <sc-for list="{{ regions }}" as="r" hint-placeholder-count="6">
+            <div style="display:grid;grid-template-columns:118px 1fr 62px;gap:12px;align-items:center;padding:7px 0">
+              <div style="font-size:13px;color:var(--ink-2);text-align:right">{{ r.name }}</div>
+              <div style="display:flex;height:20px;background:var(--line-2);border-radius:4px;overflow:hidden">
+                <div style="width:{{ r.wA }}%;background:var(--brand)"></div>
+                <div style="width:{{ r.wB }}%;background:var(--brand-300)"></div>
+              </div>
+              <div style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums">{{ r.total }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ publicKpis }}" as="k" hint-placeholder-count="4">
+            <div style="border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--surface-2);display:flex;align-items:center;gap:14px">
+              <span style="font-size:19px;width:26px;text-align:center">{{ k.icon }}</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:12.5px;color:var(--ink-2)">{{ k.label }}</div>
+                <div style="font-size:26px;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums">{{ k.value }}</div>
+              </div>
+              <div style="font-size:12px;font-weight:600;color:{{ k.color }}">{{ k.delta }}</div>
+            </div>
+          </sc-for>
+          <button onClick="{{ goSearch }}" style="padding:13px 16px;background:var(--brand);color:var(--on-brand);border:0;border-radius:10px;font-size:14.5px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px">
+            <span>ค้นหาสถานประกอบการ</span><span style="margin-left:auto">→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:36px 40px 60px">
+    <div style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;box-shadow:var(--shadow)">
+        <div style="font-size:15px;font-weight:600;margin-bottom:4px">สถานประกอบการที่รับผู้พิการ</div>
+        <div style="font-size:12.5px;color:var(--ink-3);margin-bottom:14px">แสดง 4 จาก 128 แห่ง</div>
+        <sc-for list="{{ disabilityList }}" as="d" hint-placeholder-count="4">
+          <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line-2)">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13.5px;font-weight:500">{{ d.name }}</div>
+              <div style="font-size:12px;color:var(--ink-3)">{{ d.estate }}</div>
+            </div>
+            <span style="font-size:11.5px;padding:3px 9px;border-radius:20px;background:var(--info-bg);color:var(--info);white-space:nowrap">{{ d.type }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;box-shadow:var(--shadow)">
+        <div style="font-size:15px;font-weight:600;margin-bottom:14px">ดาวน์โหลดแบบฟอร์มและคู่มือ</div>
+        <sc-for list="{{ downloads }}" as="f" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line-2)">
+            <span style="font-size:16px">📄</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13.5px;font-weight:500">{{ f.name }}</div>
+              <div style="font-size:12px;color:var(--ink-3)">{{ f.meta }}</div>
+            </div>
+            <button style="padding:5px 11px;font-size:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:8px;cursor:pointer">ดาวน์โหลด</button>
+          </div>
+        </sc-for>
+        <div style="margin-top:18px;padding:14px;background:var(--brand-soft);border-radius:10px;display:flex;align-items:center;gap:14px">
+          <div style="width:62px;height:62px;background:var(--surface);border:1px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--ink-3)">QR</div>
+          <div style="font-size:12.5px;color:var(--ink-2)">สแกนเพื่อเปิดระบบบนมือถือขณะลงพื้นที่</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</sc-if>
+
+<sc-if value="{{ showSearch }}" hint-placeholder-val="{{ false }}">
+<div style="padding:32px 40px 60px">
+  <div style="max-width:1180px;margin:0 auto">
+    <div style="font-size:12.5px;color:var(--ink-3);margin-bottom:6px"><a href="#" onClick="{{ goPublic }}">หน้าแรก</a> / ค้นหาสถานประกอบการ</div>
+    <h1 style="margin:0 0 20px;font-size:28px;font-weight:700">ค้นหาสถานประกอบการ</h1>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow)">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <input value="{{ q }}" onChange="{{ setQ }}" placeholder="ชื่อสถานประกอบการ" style="flex:2;min-width:240px;padding:10px 13px;font-size:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)">
+        <select value="{{ fProvince }}" onChange="{{ setProvince }}" style="flex:1;min-width:150px;padding:10px 13px;font-size:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)">
+          <option value="">ทุกจังหวัด</option>
+          <option value="สมุทรปราการ">สมุทรปราการ</option>
+          <option value="ระยอง">ระยอง</option>
+          <option value="ชลบุรี">ชลบุรี</option>
+          <option value="พระนครศรีอยุธยา">พระนครศรีอยุธยา</option>
+        </select>
+        <select value="{{ fEstate }}" onChange="{{ setEstate }}" style="flex:1.4;min-width:200px;padding:10px 13px;font-size:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)">
+          <option value="">ทุกนิคมอุตสาหกรรม</option>
+          <option value="นิคมอุตสาหกรรมเอเซีย (สุวรรณภูมิ)">นิคมอุตสาหกรรมเอเซีย (สุวรรณภูมิ)</option>
+          <option value="นิคมอุตสาหกรรมมาบตาพุด">นิคมอุตสาหกรรมมาบตาพุด</option>
+          <option value="นิคมอุตสาหกรรมอมตะซิตี้ ชลบุรี">นิคมอุตสาหกรรมอมตะซิตี้ ชลบุรี</option>
+          <option value="นิคมอุตสาหกรรมบางปะอิน">นิคมอุตสาหกรรมบางปะอิน</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
+        <span style="font-size:12px;color:var(--ink-3);margin-right:2px">ตัวกรอง</span>
+        <sc-for list="{{ chips }}" as="c" hint-placeholder-count="4">
+          <button onClick="{{ c.toggle }}" style="padding:6px 12px;font-size:12.5px;border:1px solid {{ c.border }};background:{{ c.bg }};color:{{ c.fg }};border-radius:20px;cursor:pointer;font-weight:500">{{ c.label }}</button>
+        </sc-for>
+        <button onClick="{{ clearFilters }}" style="margin-left:auto;padding:6px 12px;font-size:12.5px;border:0;background:transparent;color:var(--brand);border-radius:8px;cursor:pointer">ล้างตัวกรอง</button>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:baseline;gap:10px;margin:22px 0 12px">
+      <div style="font-size:14px;font-weight:600">พบ {{ resultCount }} แห่ง</div>
+      <div style="font-size:12.5px;color:var(--ink-3)">จาก 2,721 แห่งที่บันทึกเข้าระบบ</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px">
+      <sc-for list="{{ results }}" as="e" hint-placeholder-count="6">
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+            <div style="font-size:15px;font-weight:600;line-height:1.4">{{ e.name }}</div>
+            <span style="flex:none;font-size:11px;padding:3px 8px;border-radius:6px;background:{{ e.scoreBg }};color:{{ e.scoreFg }};font-weight:600">{{ e.score }}</span>
+          </div>
+          <div style="font-size:12.5px;color:var(--ink-2);line-height:1.6">
+            <div>{{ e.biz }}</div>
+            <div>{{ e.estate }} · จ.{{ e.province }}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <sc-for list="{{ e.tags }}" as="t" hint-placeholder-count="2">
+              <span style="font-size:11.5px;padding:3px 9px;border-radius:20px;background:{{ t.bg }};color:{{ t.fg }}">{{ t.label }}</span>
+            </sc-for>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding-top:10px;border-top:1px solid var(--line-2);font-size:12.5px;color:var(--ink-3)">
+            <span>ต้องการ {{ e.demand }} คน</span>
+            <a href="#" style="margin-left:auto;font-weight:600">ดูรายละเอียด →</a>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center;padding:60px 20px;border:1px dashed var(--line);border-radius:12px;color:var(--ink-3)">
+        <div style="font-size:30px;margin-bottom:8px">🔍</div>
+        <div style="font-size:15px;font-weight:600;color:var(--ink)">ไม่พบสถานประกอบการที่ตรงเงื่อนไข</div>
+        <div style="font-size:13px;margin-top:4px">ลองลดตัวกรองหรือค้นด้วยคำที่สั้นลง</div>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showDash }}" hint-placeholder-val="{{ false }}">
+<div style="padding:26px 32px 60px">
+  <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+    <div>
+      <h1 style="margin:0;font-size:25px;font-weight:700">แดชบอร์ดภาพรวมประเทศ</h1>
+      <div style="font-size:13px;color:var(--ink-3)">ปีการศึกษา {{ year }} · {{ scopeLabel }} · ข้อมูล ณ 24/08/2569</div>
+    </div>
+    <div class="no-print" style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+      <select value="{{ region }}" onChange="{{ setRegion }}" style="padding:8px 12px;font-size:13px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink)">
+        <option value="ทุกภาค">ทุกภาค</option>
+        <option value="ภาคกลาง">ภาคกลาง</option>
+        <option value="ภาคตะวันออก">ภาคตะวันออก</option>
+        <option value="ภาคเหนือ">ภาคเหนือ</option>
+        <option value="ภาคใต้">ภาคใต้</option>
+        <option value="ภาคอีสาน">ภาคตะวันออกเฉียงเหนือ</option>
+      </select>
+      <button style="padding:8px 13px;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:9px;cursor:pointer">ส่งออก Excel</button>
+      <button style="padding:8px 13px;font-size:13px;border:0;background:var(--brand);color:var(--on-brand);border-radius:9px;cursor:pointer;font-weight:600">แชร์ลิงก์</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:14px">
+    <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="5">
+      <button onClick="{{ k.click }}" class="kpi" style="text-align:left;cursor:pointer;background:var(--surface);border:1px solid {{ k.border }};border-radius:12px;padding:15px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:15px">{{ k.icon }}</span>
+          <span style="font-size:12.5px;color:var(--ink-2);flex:1;line-height:1.35">{{ k.label }}</span>
+        </div>
+        <div style="font-size:32px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;color:{{ k.valueColor }}">{{ k.value }}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <svg viewBox="0 0 60 18" width="60" height="18" preserveAspectRatio="none"><polyline points="{{ k.spark }}" fill="none" stroke="var(--brand-300)" stroke-width="1.6"></polyline></svg>
+          <span style="font-size:11.5px;color:var(--ink-3)">{{ k.sub }}</span>
+        </div>
+        <div style="font-size:11px;color:var(--brand);font-weight:600">{{ k.filterNote }}</div>
+      </button>
+    </sc-for>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:16px;margin-top:16px">
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow)">
+      <div style="font-size:15px;font-weight:600;margin-bottom:14px">ความคืบหน้ารายภาค</div>
+      <sc-for list="{{ regionProgress }}" as="r" hint-placeholder-count="6">
+        <div style="display:grid;grid-template-columns:130px 1fr 106px;gap:12px;align-items:center;padding:6px 0">
+          <div style="font-size:13px;color:var(--ink-2);text-align:right">{{ r.name }}</div>
+          <div style="height:18px;background:var(--line-2);border-radius:4px;overflow:hidden">
+            <div style="width:{{ r.w }}%;height:100%;background:{{ r.color }}"></div>
+          </div>
+          <div style="font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink-2)">{{ r.text }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow);display:flex;gap:18px;align-items:center">
+      <div style="position:relative;width:150px;height:150px;flex:none">
+        <svg viewBox="0 0 120 120" width="150" height="150">
+          <circle cx="60" cy="60" r="46" fill="none" stroke="var(--line-2)" stroke-width="18"></circle>
+          <circle cx="60" cy="60" r="46" fill="none" stroke="var(--brand)" stroke-width="18" stroke-dasharray="{{ donutA }} 289" transform="rotate(-90 60 60)"></circle>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+          <div style="font-size:25px;font-weight:700;line-height:1.1">{{ donutPct }}</div>
+          <div style="font-size:11.5px;color:var(--ink-3)">ฝึกงาน</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:10px">ฝึกงาน vs ทวิภาคี</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0"><span style="width:11px;height:11px;background:var(--brand);border-radius:3px"></span>ฝึกงาน 6,420 คน</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0"><span style="width:11px;height:11px;background:var(--line-2);border-radius:3px"></span>ทวิภาคี 3,910 คน</div>
+        <div style="font-size:12px;color:var(--ink-3);margin-top:8px">รวม 10,330 คน จาก 2,020 รายการ</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-top:16px;box-shadow:var(--shadow);overflow:hidden">
+    <div style="display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)">
+      <div>
+        <div style="font-size:15px;font-weight:600">สอจ. ที่คืบหน้าน้อยที่สุด 10 อันดับ</div>
+        <div style="font-size:12.5px;color:var(--ink-3)">{{ tableNote }}</div>
+      </div>
+      <div class="no-print" style="margin-left:auto;display:flex;gap:8px">
+        <input placeholder="ค้นหา สอจ. / จังหวัด" style="padding:8px 12px;font-size:13px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink);width:210px">
+        <button style="padding:8px 12px;font-size:13px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:9px;cursor:pointer">พิมพ์</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:900px">
+        <thead>
+          <tr style="background:var(--brand);color:var(--on-brand)">
+            <th style="text-align:left;padding:11px 14px;font-weight:600;font-size:13px">สอจ. / วิทยาลัย</th>
+            <th style="text-align:left;padding:11px 14px;font-weight:600;font-size:13px">จังหวัด</th>
+            <th style="text-align:left;padding:11px 14px;font-weight:600;font-size:13px">นิคมฯ ที่รับผิดชอบ</th>
+            <th style="text-align:right;padding:11px 14px;font-weight:600;font-size:13px">เป้าหมาย</th>
+            <th style="text-align:right;padding:11px 14px;font-weight:600;font-size:13px">บันทึกแล้ว</th>
+            <th style="text-align:left;padding:11px 14px;font-weight:600;font-size:13px;width:200px">ความคืบหน้า</th>
+            <th style="padding:11px 14px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+            <tr style="border-top:1px solid var(--line-2)">
+              <td style="padding:11px 14px">
+                <div style="font-weight:500">{{ r.office }}</div>
+                <div style="font-size:12px;color:var(--ink-3)">{{ r.code }}</div>
+              </td>
+              <td style="padding:11px 14px;color:var(--ink-2)">{{ r.province }}</td>
+              <td style="padding:11px 14px">
+                <div style="display:flex;gap:5px;flex-wrap:wrap">
+                  <sc-for list="{{ r.estates }}" as="es" hint-placeholder-count="1">
+                    <span style="font-size:11.5px;padding:3px 8px;border-radius:20px;background:var(--brand-soft);color:var(--brand)">{{ es }}</span>
+                  </sc-for>
+                </div>
+              </td>
+              <td style="padding:11px 14px;text-align:right;font-variant-numeric:tabular-nums">{{ r.target }}</td>
+              <td style="padding:11px 14px;text-align:right;font-variant-numeric:tabular-nums">{{ r.done }}</td>
+              <td style="padding:11px 14px">
+                <div style="display:flex;align-items:center;gap:9px">
+                  <div style="flex:1;height:8px;background:var(--line-2);border-radius:99px;overflow:hidden">
+                    <div style="width:{{ r.w }}%;height:100%;background:{{ r.color }}"></div>
+                  </div>
+                  <span style="font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;color:{{ r.color }}">{{ r.pct }}</span>
+                  <span style="font-size:11px">{{ r.flag }}</span>
+                </div>
+              </td>
+              <td style="padding:11px 14px;text-align:right"><a href="#" style="font-size:12.5px;font-weight:600">ดู →</a></td>
+            </tr>
+          </sc-for>
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3)">
+      <span>แสดง 1–8 จาก 80 รายการ</span>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button style="padding:5px 11px;font-size:12.5px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink-3);border-radius:8px;cursor:pointer">ก่อนหน้า</button>
+        <button style="padding:5px 11px;font-size:12.5px;border:0;background:var(--brand);color:var(--on-brand);border-radius:8px;cursor:pointer">1</button>
+        <button style="padding:5px 11px;font-size:12.5px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:8px;cursor:pointer">2</button>
+        <button style="padding:5px 11px;font-size:12.5px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:8px;cursor:pointer">ถัดไป</button>
+      </div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showDS }}" hint-placeholder-val="{{ false }}">
+<div style="padding:30px 40px 70px;max-width:1180px;margin:0 auto">
+  <h1 style="margin:0 0 4px;font-size:27px;font-weight:700">Design system — DVE PPP</h1>
+  <p style="margin:0 0 26px;color:var(--ink-2);font-size:14.5px">Sarabun · แดงเลือดหมู --brand-700 · โหมดสว่าง/มืดผ่าน CSS custom properties · มุมโค้ง 8–12px</p>
+
+  <div style="font-size:12px;font-weight:600;letter-spacing:.8px;color:var(--ink-3);margin-bottom:10px">จานสีแบรนด์</div>
+  <div style="display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin-bottom:28px">
+    <sc-for list="{{ brandScale }}" as="s" hint-placeholder-count="10">
+      <div>
+        <div style="height:60px;border-radius:8px;background:{{ s.hex }};border:1px solid var(--line)"></div>
+        <div style="font-size:11px;margin-top:5px;font-weight:600">{{ s.step }}</div>
+        <div style="font-size:10.5px;color:var(--ink-3)">{{ s.hex }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="font-size:12px;font-weight:600;letter-spacing:.8px;color:var(--ink-3);margin-bottom:10px">สีสถานะ (แยกจากสีแบรนด์ + มีไอคอนกำกับเสมอ)</div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:28px">
+    <sc-for list="{{ statuses }}" as="s" hint-placeholder-count="5">
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:14px">
+        <div style="display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:20px;background:{{ s.bg }};color:{{ s.fg }};font-size:12.5px;font-weight:600">
+          <span>{{ s.icon }}</span><span>{{ s.label }}</span>
+        </div>
+        <div style="font-size:12px;color:var(--ink-3);margin-top:9px;line-height:1.5">{{ s.use }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px">
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.8px;color:var(--ink-3);margin-bottom:14px">ตัวอักษร Sarabun</div>
+      <div style="font-size:38px;font-weight:700;line-height:1.25">แบบสำรวจ PPP-002</div>
+      <div style="font-size:11px;color:var(--ink-3);margin-bottom:12px">Display 38/700</div>
+      <div style="font-size:20px;font-weight:600">ความต้องการกำลังคน</div>
+      <div style="font-size:11px;color:var(--ink-3);margin-bottom:12px">Heading 20/600</div>
+      <div style="font-size:16px">การฝึกประสบการณ์สมรรถนะวิชาชีพ (ฝึกงาน) — เนื้อความภาษาไทยที่ยาวใช้ line-height 1.65 เพื่อไม่ให้สระซ้อนกัน</div>
+      <div style="font-size:11px;color:var(--ink-3);margin-bottom:12px">Body 16/400 · lh 1.65</div>
+      <div style="font-size:14px;color:var(--ink-2);font-variant-numeric:tabular-nums">ตาราง 14px · ตัวเลข 4,817 / 2,721 / 56.49%</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.8px;color:var(--ink-3);margin-bottom:14px">ปุ่มและสถานะ</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+        <button style="padding:10px 16px;font-size:14px;font-weight:600;border:0;border-radius:9px;background:var(--brand);color:var(--on-brand);cursor:pointer">บันทึกแบบสำรวจ</button>
+        <button style="padding:10px 16px;font-size:14px;font-weight:600;border:0;border-radius:9px;background:var(--brand-800);color:#fff;cursor:pointer">กด (pressed)</button>
+        <button style="padding:10px 16px;font-size:14px;font-weight:500;border:1px solid var(--brand);border-radius:9px;background:transparent;color:var(--brand);cursor:pointer">ยกเลิก</button>
+        <button style="padding:10px 16px;font-size:14px;font-weight:500;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink);cursor:pointer">ทุติยภูมิ</button>
+        <button disabled="{{ true }}" style="padding:10px 16px;font-size:14px;border:0;border-radius:9px;background:var(--brand);color:var(--on-brand);opacity:.45">ปิดใช้งาน</button>
+      </div>
+      <div style="font-size:12px;font-weight:600;letter-spacing:.8px;color:var(--ink-3);margin-bottom:10px">ฟอร์ม</div>
+      <div style="display:grid;gap:10px">
+        <div>
+          <label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:5px">ชื่อสถานประกอบการ</label>
+          <input value="บริษัท ไทยซัมมิท ออโตพาร์ท จำกัด" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)">
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;color:var(--err);margin-bottom:5px">เลขผู้เสียภาษี · ต้องมี 13 หลัก</label>
+          <input value="01055" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--err);border-radius:9px;background:var(--err-bg);color:var(--ink)">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.8px;color:var(--ink-3);margin-bottom:14px">แถบความคืบหน้า รวมกรณีเกิน 100%</div>
+      <sc-for list="{{ progressDemo }}" as="p" hint-placeholder-count="3">
+        <div style="padding:8px 0">
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px">
+            <span style="color:var(--ink-2)">{{ p.label }}</span>
+            <span style="font-weight:600;color:{{ p.color }}">{{ p.pct }} {{ p.flag }}</span>
+          </div>
+          <div style="height:9px;background:var(--line-2);border-radius:99px;overflow:hidden"><div style="width:{{ p.w }}%;height:100%;background:{{ p.color }}"></div></div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.8px;color:var(--ink-3);margin-bottom:14px">Stepper เอกสาร 5 ขั้นตอน</div>
+      <sc-for list="{{ steps }}" as="s" hint-placeholder-count="5">
+        <div style="display:flex;align-items:center;gap:11px;padding:8px 0;border-top:1px solid var(--line-2)">
+          <span style="width:26px;height:26px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:{{ s.bg }};color:{{ s.fg }}">{{ s.icon }}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13.5px;font-weight:500;color:{{ s.titleColor }}">{{ s.name }}</div>
+            <div style="font-size:12px;color:var(--ink-3)">{{ s.note }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showEstates }}" hint-placeholder-val="{{ false }}">
+<div style="padding:26px 32px 60px">
+  <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px">
+    <div>
+      <h1 style="margin:0;font-size:25px;font-weight:700">ติดตามข้อมูลนิคมอุตสาหกรรม</h1>
+      <div style="font-size:13px;color:var(--ink-3)">ปีการศึกษา {{ year }} · 75 นิคมฯ · คลิกการ์ด KPI เพื่อกรองตาราง</div>
+    </div>
+    <div class="no-print" style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+      <button style="padding:8px 13px;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:9px;cursor:pointer">รีเฟรช</button>
+      <button style="padding:8px 13px;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:9px;cursor:pointer">ส่งออก Excel</button>
+      <button style="padding:8px 13px;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:9px;cursor:pointer">พิมพ์</button>
+      <button style="padding:8px 13px;font-size:13px;border:0;background:var(--brand);color:var(--on-brand);border-radius:9px;cursor:pointer;font-weight:600">แชร์ลิงก์สาธารณะ</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:14px;margin-bottom:16px">
+    <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="5">
+      <button onClick="{{ k.click }}" style="text-align:left;cursor:pointer;background:var(--surface);border:1px solid {{ k.border }};border-radius:12px;padding:15px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:15px">{{ k.icon }}</span>
+          <span style="font-size:12.5px;color:var(--ink-2);flex:1;line-height:1.35">{{ k.label }}</span>
+        </div>
+        <div style="font-size:30px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;color:{{ k.valueColor }}">{{ k.value }}</div>
+        <div style="font-size:11px;color:var(--brand);font-weight:600">{{ k.filterNote }}</div>
+      </button>
+    </sc-for>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:1020px">
+        <thead>
+          <tr style="background:var(--brand);color:var(--on-brand)">
+            <th style="text-align:left;padding:11px 14px;font-size:13px;font-weight:600">นิคมอุตสาหกรรม</th>
+            <th style="text-align:left;padding:11px 14px;font-size:13px;font-weight:600">สอจ. ที่รับผิดชอบ</th>
+            <th style="text-align:right;padding:11px 14px;font-size:13px;font-weight:600">สถานประกอบการ</th>
+            <th style="text-align:right;padding:11px 14px;font-size:13px;font-weight:600">ในระบบ</th>
+            <th style="text-align:left;padding:11px 14px;font-size:13px;font-weight:600;width:230px">ความคืบหน้า</th>
+            <th style="text-align:right;padding:11px 14px;font-size:13px;font-weight:600">ไม่ประสงค์รับ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <sc-for list="{{ estateRows }}" as="r" hint-placeholder-count="6">
+            <tr style="border-top:1px solid var(--line-2);background:{{ r.rowBg }}">
+              <td style="padding:11px 14px">
+                <div style="font-weight:500">{{ r.name }}</div>
+                <div style="font-size:12px;color:var(--ink-3)">{{ r.province }}</div>
+              </td>
+              <td style="padding:11px 14px">
+                <div style="display:flex;gap:5px;flex-wrap:wrap">
+                  <sc-for list="{{ r.offices }}" as="o" hint-placeholder-count="2">
+                    <span style="font-size:11.5px;padding:3px 8px;border-radius:20px;background:var(--brand-soft);color:var(--brand)">{{ o }}</span>
+                  </sc-for>
+                </div>
+              </td>
+              <td style="padding:11px 14px;text-align:right;font-variant-numeric:tabular-nums">{{ r.total }}</td>
+              <td style="padding:11px 14px;text-align:right;font-variant-numeric:tabular-nums">{{ r.done }}</td>
+              <td style="padding:11px 14px">
+                <div style="display:flex;align-items:center;gap:9px">
+                  <div style="flex:1;height:8px;background:var(--line-2);border-radius:99px;overflow:hidden"><div style="width:{{ r.w }}%;height:100%;background:{{ r.color }}"></div></div>
+                  <span style="font-size:12.5px;font-weight:600;color:{{ r.color }};font-variant-numeric:tabular-nums">{{ r.pct }}</span>
+                </div>
+                <div style="font-size:11px;color:var(--err);margin-top:3px">{{ r.warn }}</div>
+              </td>
+              <td style="padding:11px 14px;text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums">{{ r.no }}</td>
+            </tr>
+          </sc-for>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showUploads }}" hint-placeholder-val="{{ false }}">
+<div style="padding:26px 32px 60px">
+  <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px">
+    <div>
+      <h1 style="margin:0;font-size:25px;font-weight:700">ตรวจสอบสถานะการอัปโหลดไฟล์</h1>
+      <div style="font-size:13px;color:var(--ink-3)">ปีการศึกษา {{ year }} · 80 สอจ. · 5 ขั้นตอน (เปิดใช้ 3)</div>
+    </div>
+    <div class="no-print" style="margin-left:auto;display:flex;gap:8px">
+      <button style="padding:8px 13px;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:9px;cursor:pointer">ดาวน์โหลด ZIP ทั้งหมด</button>
+      <button style="padding:8px 13px;font-size:13px;border:0;background:var(--brand);color:var(--on-brand);border-radius:9px;cursor:pointer;font-weight:600">แชร์ลิงก์สาธารณะ</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:14px;margin-bottom:16px">
+    <sc-for list="{{ uploadKpis }}" as="k" hint-placeholder-count="4">
+      <button onClick="{{ k.click }}" style="text-align:left;cursor:pointer;background:var(--surface);border:1px solid {{ k.border }};border-radius:12px;padding:15px;box-shadow:var(--shadow)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:14px;color:{{ k.color }}">{{ k.icon }}</span>
+          <span style="font-size:12.5px;color:var(--ink-2)">{{ k.label }}</span>
+        </div>
+        <div style="font-size:30px;font-weight:700;line-height:1.1;color:{{ k.color }};font-variant-numeric:tabular-nums">{{ k.value }}</div>
+      </button>
+    </sc-for>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+    <div style="display:flex;gap:8px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap">
+      <sc-for list="{{ uploadFilters }}" as="f" hint-placeholder-count="4">
+        <button onClick="{{ f.click }}" style="padding:6px 13px;font-size:12.5px;font-weight:500;border:1px solid {{ f.border }};background:{{ f.bg }};color:{{ f.fg }};border-radius:20px;cursor:pointer">{{ f.label }}</button>
+      </sc-for>
+      <input placeholder="ค้นหา สอจ. / รหัสวิทยาลัย" style="margin-left:auto;padding:8px 12px;font-size:13px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink);width:230px">
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:1060px">
+        <thead>
+          <tr style="background:var(--brand);color:var(--on-brand)">
+            <th style="text-align:left;padding:11px 14px;font-size:13px;font-weight:600">สอจ. / วิทยาลัย</th>
+            <th style="text-align:left;padding:11px 14px;font-size:13px;font-weight:600">จังหวัด</th>
+            <th style="text-align:center;padding:11px 14px;font-size:13px;font-weight:600">หนังสือนำ</th>
+            <th style="text-align:center;padding:11px 14px;font-size:13px;font-weight:600">คำสั่งฯ</th>
+            <th style="text-align:center;padding:11px 14px;font-size:13px;font-weight:600">แผนงาน</th>
+            <th style="text-align:left;padding:11px 14px;font-size:13px;font-weight:600;width:170px">รวม</th>
+            <th style="text-align:left;padding:11px 14px;font-size:13px;font-weight:600">สถานะ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <sc-for list="{{ uploadRows }}" as="r" hint-placeholder-count="6">
+            <tr style="border-top:1px solid var(--line-2)">
+              <td style="padding:11px 14px">
+                <div style="font-weight:500">{{ r.office }}</div>
+                <div style="font-size:12px;color:var(--ink-3)">{{ r.code }} · {{ r.estate }}</div>
+              </td>
+              <td style="padding:11px 14px;color:var(--ink-2)">{{ r.province }}</td>
+              <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="3">
+                <td style="padding:11px 14px;text-align:center">
+                  <button onClick="{{ c.open }}" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;font-size:12px;font-weight:600;border:0;border-radius:20px;background:{{ c.bg }};color:{{ c.fg }};cursor:pointer">
+                    <span>{{ c.icon }}</span><span>{{ c.text }}</span>
+                  </button>
+                </td>
+              </sc-for>
+              <td style="padding:11px 14px">
+                <div style="display:flex;align-items:center;gap:9px">
+                  <div style="flex:1;height:8px;background:var(--line-2);border-radius:99px;overflow:hidden"><div style="width:{{ r.w }}%;height:100%;background:{{ r.color }}"></div></div>
+                  <span style="font-size:12.5px;font-weight:600;color:{{ r.color }}">{{ r.pct }}</span>
+                </div>
+              </td>
+              <td style="padding:11px 14px">
+                <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:{{ r.statusBg }};color:{{ r.color }}">{{ r.statusIcon }} {{ r.status }}</span>
+              </td>
+            </tr>
+          </sc-for>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showFileModal }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;background:rgba(20,14,16,.55);z-index:60;display:flex;align-items:center;justify-content:center;padding:24px">
+  <div style="width:100%;max-width:620px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden">
+    <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)">
+      <div>
+        <div style="font-size:16px;font-weight:600">{{ modalTitle }}</div>
+        <div style="font-size:12.5px;color:var(--ink-3)">{{ modalSub }}</div>
+      </div>
+      <button onClick="{{ closeModal }}" style="margin-left:auto;width:32px;height:32px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:9px;cursor:pointer">✕</button>
+    </div>
+    <div style="padding:8px 20px 16px">
+      <sc-for list="{{ modalFiles }}" as="f" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line-2)">
+          <span style="font-size:17px">📄</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13.5px;font-weight:500">{{ f.name }}</div>
+            <div style="font-size:12px;color:var(--ink-3)">{{ f.meta }}</div>
+          </div>
+          <button style="padding:5px 11px;font-size:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:8px;cursor:pointer">ดูตัวอย่าง</button>
+          <button style="padding:5px 11px;font-size:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:8px;cursor:pointer">ดาวน์โหลด</button>
+        </div>
+      </sc-for>
+      <div style="margin-top:14px;padding:11px 13px;background:var(--info-bg);color:var(--info);font-size:12.5px;border-radius:9px">i ในโหมดลิงก์แชร์ ปุ่มดูตัวอย่างและดาวน์โหลดจะถูกซ่อน แต่ยังเห็นสถานะครบถ้วน</div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showEnterprises }}" hint-placeholder-val="{{ false }}">
+<div style="padding:26px 32px 60px">
+  <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+    <div>
+      <div style="font-size:12.5px;color:var(--ink-3)">นิคมฯ ที่กำลังทำงาน</div>
+      <h1 style="margin:2px 0 6px;font-size:25px;font-weight:700">{{ activeEstate }}</h1>
+      <div style="display:flex;gap:8px">
+        <button style="padding:5px 11px;font-size:12.5px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;cursor:pointer">ดูข้อมูลนิคมฯ</button>
+        <button style="padding:5px 11px;font-size:12.5px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;cursor:pointer">แก้ไขข้อมูลนิคมฯ</button>
+      </div>
+    </div>
+    <button onClick="{{ goSurvey }}" style="margin-left:auto;padding:12px 18px;font-size:14.5px;font-weight:600;border:0;background:var(--brand);color:var(--on-brand);border-radius:10px;cursor:pointer">+ บันทึกแบบสำรวจใหม่</button>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);margin-bottom:16px;display:flex;align-items:center;gap:22px;flex-wrap:wrap">
+    <div><div style="font-size:12.5px;color:var(--ink-3)">เป้าหมายปี {{ year }}</div><div style="font-size:24px;font-weight:700">112</div></div>
+    <div><div style="font-size:12.5px;color:var(--ink-3)">บันทึกแล้ว</div><div style="font-size:24px;font-weight:700">68</div></div>
+    <div><div style="font-size:12.5px;color:var(--ink-3)">ไม่ประสงค์รับ</div><div style="font-size:24px;font-weight:700;color:var(--warn)">21</div></div>
+    <div style="flex:1;min-width:240px">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px"><span style="color:var(--ink-2)">ความคืบหน้าเทียบโควตา</span><span style="font-weight:600;color:var(--ok)">60.71%</span></div>
+      <div style="height:10px;background:var(--line-2);border-radius:99px;overflow:hidden"><div style="width:60.71%;height:100%;background:var(--ok)"></div></div>
+    </div>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+    <div style="display:flex;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap">
+      <input placeholder="ค้นหาชื่อสถานประกอบการ" style="flex:1;min-width:220px;padding:9px 12px;font-size:13.5px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)">
+      <button style="padding:9px 13px;font-size:13px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:9px;cursor:pointer">ส่งออก Excel</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:980px">
+        <thead>
+          <tr style="background:var(--brand);color:var(--on-brand)">
+            <th style="text-align:left;padding:11px 14px;font-size:13px;font-weight:600">สถานประกอบการ</th>
+            <th style="text-align:left;padding:11px 14px;font-size:13px;font-weight:600">ผู้ประสานงาน</th>
+            <th style="text-align:left;padding:11px 14px;font-size:13px;font-weight:600">สำรวจล่าสุด</th>
+            <th style="text-align:left;padding:11px 14px;font-size:13px;font-weight:600;width:190px">ความสมบูรณ์</th>
+            <th style="text-align:left;padding:11px 14px;font-size:13px;font-weight:600">สถานะ</th>
+            <th style="padding:11px 14px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <sc-for list="{{ entRows }}" as="r" hint-placeholder-count="6">
+            <tr style="border-top:1px solid var(--line-2)">
+              <td style="padding:11px 14px">
+                <div style="font-weight:500">{{ r.name }}</div>
+                <div style="font-size:12px;color:var(--ink-3)">{{ r.biz }}</div>
+              </td>
+              <td style="padding:11px 14px;color:var(--ink-2);font-size:13px">{{ r.contact }}</td>
+              <td style="padding:11px 14px;color:var(--ink-2);font-variant-numeric:tabular-nums">{{ r.date }}</td>
+              <td style="padding:11px 14px">
+                <div style="display:flex;align-items:center;gap:9px">
+                  <div style="flex:1;height:8px;background:var(--line-2);border-radius:99px;overflow:hidden"><div style="width:{{ r.score }}%;height:100%;background:{{ r.color }}"></div></div>
+                  <span style="font-size:12.5px;font-weight:600;color:{{ r.color }}">{{ r.score }}</span>
+                </div>
+              </td>
+              <td style="padding:11px 14px"><span style="font-size:11.5px;padding:3px 9px;border-radius:20px;background:{{ r.stBg }};color:{{ r.stFg }}">{{ r.status }}</span></td>
+              <td style="padding:11px 14px;text-align:right;white-space:nowrap">
+                <a href="#" style="font-size:12.5px;font-weight:600">ดู</a>
+                <a href="#" onClick="{{ goSurvey }}" style="font-size:12.5px;font-weight:600;margin-left:10px">แก้ไข</a>
+              </td>
+            </tr>
+          </sc-for>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showSurvey }}" hint-placeholder-val="{{ false }}">
+<div style="padding:24px 32px 60px;max-width:1180px">
+  <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+    <div>
+      <div style="font-size:12.5px;color:var(--ink-3)"><a href="#" onClick="{{ goEnterprises }}">สถานประกอบการ</a> / แบบสำรวจ PPP-002</div>
+      <h1 style="margin:2px 0 0;font-size:25px;font-weight:700">แบบสำรวจ PPP-002 · ปีการศึกษา {{ year }}</h1>
+      <div style="font-size:13px;color:var(--ink-3)">บริษัท ไทยซัมมิท ออโตพาร์ท อินดัสตรี จำกัด · รอบการสำรวจ: ภาคเรียนที่ 1</div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+      <div style="text-align:right">
+        <div style="font-size:11.5px;color:var(--ink-3)">บันทึกร่างล่าสุด</div>
+        <div style="font-size:12.5px;font-weight:600">{{ draftTime }}</div>
+      </div>
+      <div style="position:relative;width:64px;height:64px;flex:none">
+        <svg viewBox="0 0 72 72" width="64" height="64">
+          <circle cx="36" cy="36" r="28" fill="none" stroke="var(--line-2)" stroke-width="9"></circle>
+          <circle cx="36" cy="36" r="28" fill="none" stroke="{{ scoreColor }}" stroke-width="9" stroke-dasharray="{{ scoreDash }} 176" transform="rotate(-90 36 36)"></circle>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;pointer-events:none">
+          <div style="font-size:16px;font-weight:700">{{ score }}</div>
+          <div style="font-size:9.5px;color:var(--ink-3)">/100</div>
+        </div>
+      </div>
+      <button style="padding:11px 16px;font-size:14px;font-weight:600;border:1px solid var(--brand);background:transparent;color:var(--brand);border-radius:9px;cursor:pointer">บันทึกร่าง</button>
+      <button style="padding:11px 16px;font-size:14px;font-weight:600;border:0;background:var(--brand);color:var(--on-brand);border-radius:9px;cursor:pointer">บันทึกแบบสำรวจ</button>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:6px;overflow-x:auto;padding:4px 0 14px">
+    <sc-for list="{{ wizSteps }}" as="s" hint-placeholder-count="10">
+      <button onClick="{{ s.go }}" style="flex:none;display:flex;align-items:center;gap:8px;padding:9px 13px;border:1px solid {{ s.border }};background:{{ s.bg }};color:{{ s.fg }};border-radius:10px;cursor:pointer;font-size:12.5px;font-weight:500;white-space:nowrap">
+        <span style="width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:{{ s.dotBg }};color:{{ s.dotFg }}">{{ s.mark }}</span>
+        <span>{{ s.label }}</span>
+      </button>
+    </sc-for>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:22px">
+    <sc-if value="{{ stepIsInfo }}" hint-placeholder-val="{{ true }}">
+    <div>
+      <h2 style="margin:0 0 4px;font-size:19px;font-weight:600">ข้อมูลสถานประกอบการ</h2>
+      <p style="margin:0 0 18px;font-size:13.5px;color:var(--ink-3)">ที่อยู่เลือกแบบลูกโซ่ จังหวัด → อำเภอ → ตำบล และเติมรหัสไปรษณีย์ให้อัตโนมัติ</p>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px">
+        <div><label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:5px">ชื่อสถานประกอบการ *</label><input value="บริษัท ไทยซัมมิท ออโตพาร์ท อินดัสตรี จำกัด" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)"></div>
+        <div><label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:5px">เลขผู้เสียภาษี 13 หลัก *</label><input value="0105536091234" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink);font-variant-numeric:tabular-nums"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px">
+        <div><label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:5px">จังหวัด *</label><select style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)"><option>สมุทรปราการ</option></select></div>
+        <div><label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:5px">อำเภอ *</label><select style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)"><option>บางพลี</option></select></div>
+        <div><label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:5px">ตำบล *</label><select style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)"><option>บางโฉลง</option></select></div>
+        <div><label style="display:block;font-size:12.5px;color:var(--ink-3);margin-bottom:5px">รหัสไปรษณีย์ (อัตโนมัติ)</label><input value="10540" style="width:100%;padding:10px 12px;font-size:14px;border:1px dashed var(--line);border-radius:9px;background:var(--line-2);color:var(--ink-2)"></div>
+      </div>
+      <div style="height:1px;background:var(--line);margin:20px 0"></div>
+      <h3 style="margin:0 0 12px;font-size:15.5px;font-weight:600">ผู้ประสานงาน</h3>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+        <div><label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:5px">ชื่อ-นามสกุล</label><input value="นางสาวศิริพร วงศ์สุวรรณ" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)"></div>
+        <div><label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:5px">ตำแหน่ง</label><input value="ผู้จัดการฝ่ายบุคคล" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)"></div>
+        <div><label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:5px">โทรศัพท์</label><input value="02-315-1234" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)"></div>
+        <div><label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:5px">Line ID</label><input value="siriporn.ts" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)"></div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ stepIsDemand }}" hint-placeholder-val="{{ false }}">
+    <div>
+      <h2 style="margin:0 0 4px;font-size:19px;font-weight:600">ความต้องการกำลังคน</h2>
+      <p style="margin:0 0 16px;font-size:13.5px;color:var(--ink-3)">ส่วนนี้คิดเป็น 60 คะแนนจากคะแนนความสมบูรณ์ 100 คะแนน</p>
+
+      <label style="display:flex;align-items:center;gap:11px;padding:13px 15px;background:{{ noStudentBg }};border:1px solid {{ noStudentBorder }};border-radius:10px;cursor:pointer;margin-bottom:16px">
+        <input type="checkbox" checked="{{ noStudent }}" onChange="{{ toggleNoStudent }}" style="width:18px;height:18px;accent-color:var(--warn)">
+        <div>
+          <div style="font-size:14px;font-weight:600;color:{{ noStudentFg }}">ไม่ประสงค์รับนักเรียน/นักศึกษา</div>
+          <div style="font-size:12.5px;color:var(--ink-3)">เมื่อติ๊ก ระบบจะปิดตารางความต้องการทั้งหมดและไม่นับ 60 คะแนนส่วนนี้</div>
+        </div>
+      </label>
+
+      <sc-if value="{{ noStudent }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:34px;border:1px dashed var(--line);border-radius:11px;text-align:center;color:var(--ink-3)">
+          <div style="font-size:26px;margin-bottom:6px">🚫</div>
+          <div style="font-size:14.5px;font-weight:600;color:var(--ink)">ปิดส่วนความต้องการกำลังคนแล้ว</div>
+          <div style="font-size:13px;margin-top:4px">เอาเครื่องหมายถูกออกเพื่อกรอกตารางความต้องการต่อ</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ wantsStudent }}" hint-placeholder-val="{{ true }}">
+      <div>
+        <sc-for list="{{ demandGroups }}" as="g" hint-placeholder-count="4">
+          <div style="border:1px solid var(--line);border-radius:11px;margin-bottom:14px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface-2);border-bottom:1px solid var(--line)">
+              <span style="font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:20px;background:{{ g.tagBg }};color:{{ g.tagFg }}">{{ g.kind }}</span>
+              <span style="font-size:14px;font-weight:600">{{ g.level }}</span>
+              <span style="font-size:12.5px;color:var(--ink-3)">{{ g.summary }}</span>
+              <button style="margin-left:auto;padding:5px 11px;font-size:12.5px;font-weight:600;border:1px solid var(--brand);background:transparent;color:var(--brand);border-radius:8px;cursor:pointer">+ เพิ่มแถว</button>
+            </div>
+            <sc-for list="{{ g.rows }}" as="d" hint-placeholder-count="1">
+              <div style="display:grid;grid-template-columns:2fr 66px 66px 1.4fr 1.3fr 34px;gap:10px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--line-2)">
+                <div>
+                  <div style="font-size:13.5px;font-weight:500">{{ d.course }}</div>
+                  <div style="font-size:11.5px;color:var(--ink-3)">{{ d.code }} · เลือกจาก 171 สาขา</div>
+                </div>
+                <div><div style="font-size:11px;color:var(--ink-3)">ชาย</div><div style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums">{{ d.male }}</div></div>
+                <div><div style="font-size:11px;color:var(--ink-3)">หญิง</div><div style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums">{{ d.female }}</div></div>
+                <div style="font-size:12.5px;color:var(--ink-2)">{{ d.job }}</div>
+                <div style="display:flex;gap:5px;flex-wrap:wrap">
+                  <sc-for list="{{ d.tags }}" as="t" hint-placeholder-count="1">
+                    <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:{{ t.bg }};color:{{ t.fg }}">{{ t.label }}</span>
+                  </sc-for>
+                </div>
+                <button style="width:30px;height:30px;border:1px solid var(--line);background:var(--surface-2);color:var(--err);border-radius:8px;cursor:pointer">✕</button>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ stepIsSummary }}" hint-placeholder-val="{{ false }}">
+    <div>
+      <h2 style="margin:0 0 4px;font-size:19px;font-weight:600">ตรวจสอบและยืนยันข้อมูล</h2>
+      <p style="margin:0 0 18px;font-size:13.5px;color:var(--ink-3)">การบันทึกจะเขียนทับรายการความต้องการ ความพิการ และข้อสรุปการประชุมชุดเดิมทั้งชุด</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="border:1px solid var(--line);border-radius:11px;padding:16px">
+          <div style="font-size:12px;font-weight:600;letter-spacing:.7px;color:var(--ink-3);margin-bottom:12px">คะแนนความสมบูรณ์ {{ score }}/100</div>
+          <sc-for list="{{ scoreBreakdown }}" as="b" hint-placeholder-count="6">
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line-2)">
+              <span style="font-size:13px;color:{{ b.fg }}">{{ b.icon }}</span>
+              <span style="flex:1;font-size:13.5px">{{ b.label }}</span>
+              <span style="font-size:13px;font-weight:600;color:{{ b.fg }};font-variant-numeric:tabular-nums">{{ b.value }}</span>
+            </div>
+          </sc-for>
+          <div style="margin-top:12px;padding:11px 13px;background:var(--warn-bg);color:var(--warn);font-size:12.5px;border-radius:9px">◐ กรอกข้อเสนอแนะให้ยาวกว่า 20 ตัวอักษร เพื่อได้อีก 10 คะแนน</div>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:11px;padding:16px">
+          <div style="font-size:12px;font-weight:600;letter-spacing:.7px;color:var(--ink-3);margin-bottom:12px">สรุปสิ่งที่กรอก</div>
+          <sc-for list="{{ summaryRows }}" as="r" hint-placeholder-count="6">
+            <div style="display:flex;gap:12px;padding:7px 0;border-top:1px solid var(--line-2)">
+              <span style="width:150px;flex:none;font-size:12.5px;color:var(--ink-3)">{{ r.k }}</span>
+              <span style="font-size:13.5px">{{ r.v }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="margin-top:18px;padding:14px 16px;border:1px solid var(--err);background:var(--err-bg);border-radius:10px;display:flex;align-items:center;gap:12px">
+        <span style="color:var(--err);font-size:16px">✕</span>
+        <div style="font-size:13.5px;color:var(--ink)">ยังมีข้อมูลที่ไม่ได้บันทึก — ระบบจะเตือนก่อนออกจากหน้านี้</div>
+        <button style="margin-left:auto;padding:9px 15px;font-size:13.5px;font-weight:600;border:0;background:var(--brand);color:var(--on-brand);border-radius:9px;cursor:pointer">ยืนยันและบันทึก</button>
+      </div>
+    </div>
+    </sc-if>
+
+    <div style="display:flex;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--line)">
+      <button onClick="{{ prevStep }}" style="padding:11px 16px;font-size:14px;font-weight:500;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:9px;cursor:pointer">← ย้อนกลับ</button>
+      <button onClick="{{ nextStep }}" style="margin-left:auto;padding:11px 18px;font-size:14px;font-weight:600;border:0;background:var(--brand);color:var(--on-brand);border-radius:9px;cursor:pointer">ขั้นตอนถัดไป →</button>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showProgress }}" hint-placeholder-val="{{ false }}">
+<div style="padding:26px 32px 60px;max-width:1180px">
+  <h1 style="margin:0;font-size:25px;font-weight:700">รายงานความคืบหน้า / อัปโหลดเอกสาร</h1>
+  <div style="font-size:13px;color:var(--ink-3);margin-bottom:18px">{{ activeEstate }} · ปีการศึกษา {{ year }} · เปิดใช้ 3 จาก 5 ขั้นตอน</div>
+
+  <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:18px;align-items:start">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <sc-for list="{{ progressCards }}" as="c" hint-placeholder-count="3">
+        <div style="background:var(--surface);border:1px solid {{ c.border }};border-radius:12px;padding:18px;box-shadow:var(--shadow);opacity:{{ c.opacity }}">
+          <div style="display:flex;align-items:center;gap:11px;margin-bottom:6px">
+            <span style="width:26px;height:26px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:{{ c.badgeBg }};color:{{ c.badgeFg }}">{{ c.icon }}</span>
+            <div style="font-size:16px;font-weight:600">{{ c.name }}</div>
+            <span style="font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:20px;background:{{ c.badgeBg }};color:{{ c.badgeFg }}">{{ c.status }}</span>
+            <span style="margin-left:auto;font-size:12.5px;color:{{ c.dueColor }}">ครบกำหนด {{ c.due }}</span>
+          </div>
+          <div style="font-size:13px;color:var(--ink-3);margin-bottom:12px">เอกสารที่ต้องมี: {{ c.docs }}</div>
+
+          <sc-if value="{{ c.locked }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:22px;border:1px dashed var(--line);border-radius:10px;text-align:center;color:var(--mute);font-size:13.5px">🔒 ล็อก — รอให้ขั้นตอนก่อนหน้ายืนยันเสร็จสิ้นก่อน</div>
+          </sc-if>
+          <sc-if value="{{ c.open }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <div style="padding:20px;border:2px dashed var(--brand-200);border-radius:10px;text-align:center;background:var(--brand-soft);margin-bottom:12px">
+              <div style="font-size:20px;margin-bottom:4px">⬆</div>
+              <div style="font-size:13.5px;font-weight:600;color:var(--brand)">ลากไฟล์มาวางที่นี่ หรือกดเพื่อเลือกไฟล์</div>
+              <div style="font-size:12px;color:var(--ink-3);margin-top:3px">PDF, JPG, PNG ขนาดไม่เกิน 10 MB ต่อไฟล์</div>
+            </div>
+            <sc-for list="{{ c.files }}" as="f" hint-placeholder-count="2">
+              <div style="display:flex;align-items:center;gap:11px;padding:9px 0;border-top:1px solid var(--line-2)">
+                <span style="font-size:15px">📄</span>
+                <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:500">{{ f.name }}</div><div style="font-size:12px;color:var(--ink-3)">{{ f.meta }}</div></div>
+                <button style="padding:4px 10px;font-size:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:8px;cursor:pointer">ดูตัวอย่าง</button>
+                <button style="padding:4px 10px;font-size:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--err);border-radius:8px;cursor:pointer">ลบ</button>
+              </div>
+            </sc-for>
+            <div style="display:flex;gap:10px;margin-top:14px">
+              <input placeholder="หมายเหตุถึงส่วนกลาง" style="flex:1;padding:9px 12px;font-size:13.5px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)">
+              <button style="padding:9px 14px;font-size:13.5px;font-weight:600;border:1px solid var(--brand);background:transparent;color:var(--brand);border-radius:9px;cursor:pointer">บันทึกร่าง</button>
+              <button style="padding:9px 14px;font-size:13.5px;font-weight:600;border:0;background:var(--brand);color:var(--on-brand);border-radius:9px;cursor:pointer">ยืนยันเสร็จสิ้น</button>
+            </div>
+          </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow)">
+      <div style="font-size:15px;font-weight:600;margin-bottom:14px">ไทม์ไลน์การดำเนินการ</div>
+      <sc-for list="{{ activityLog }}" as="a" hint-placeholder-count="5">
+        <div style="display:flex;gap:12px">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <span style="width:9px;height:9px;border-radius:50%;background:{{ a.color }};margin-top:6px"></span>
+            <span style="flex:1;width:1px;background:var(--line)"></span>
+          </div>
+          <div style="padding-bottom:16px">
+            <div style="font-size:13.5px;font-weight:500">{{ a.text }}</div>
+            <div style="font-size:12px;color:var(--ink-3)">{{ a.who }} · {{ a.when }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showLogin }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:calc(100vh - 60px);display:grid;grid-template-columns:1fr 1fr">
+  <div style="padding:60px 48px;display:flex;flex-direction:column;justify-content:center;max-width:560px">
+    <h1 style="margin:0 0 6px;font-size:28px;font-weight:700">เข้าสู่ระบบ</h1>
+    <p style="margin:0 0 22px;font-size:14.5px;color:var(--ink-2)">เลือกบทบาทของคุณ ระบบใช้สิทธิ์เดียวและหมดเวลาอัตโนมัติ 30 นาทีทุกบทบาท</p>
+    <div style="display:flex;gap:8px;padding:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;margin-bottom:20px">
+      <sc-for list="{{ loginRoles }}" as="r" hint-placeholder-count="2">
+        <button onClick="{{ r.click }}" style="flex:1;padding:9px;font-size:13.5px;font-weight:600;border:0;border-radius:8px;cursor:pointer;background:{{ r.bg }};color:{{ r.fg }}">{{ r.label }}</button>
+      </sc-for>
+    </div>
+    <div style="display:grid;gap:14px">
+      <div><label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:5px">{{ loginUserLabel }}</label><input value="1310106101" style="width:100%;padding:11px 13px;font-size:14.5px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink);font-variant-numeric:tabular-nums"></div>
+      <div><label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:5px">รหัสผ่าน</label><input value="••••••••••" style="width:100%;padding:11px 13px;font-size:14.5px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)"></div>
+      <button onClick="{{ goEstatePicker }}" style="padding:13px;font-size:15px;font-weight:600;border:0;background:var(--brand);color:var(--on-brand);border-radius:10px;cursor:pointer">เข้าสู่ระบบ</button>
+    </div>
+    <div style="margin-top:20px;padding:14px 16px;border:1px solid var(--warn);background:var(--warn-bg);border-radius:10px">
+      <div style="display:flex;gap:10px">
+        <span style="color:var(--warn)">◐</span>
+        <div>
+          <div style="font-size:13.5px;font-weight:600;color:var(--warn)">ต้องตั้งรหัสผ่านใหม่ก่อนใช้งาน</div>
+          <div style="font-size:12.5px;color:var(--ink-2);line-height:1.6">บัญชีนี้ยังใช้รหัสผ่านเริ่มต้นที่เท่ากับรหัสวิทยาลัย ระบบจะพาไปตั้งรหัสผ่านใหม่หลังเข้าสู่ระบบครั้งแรก</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="background:var(--brand-700);color:#fff;padding:60px 48px;display:flex;flex-direction:column;justify-content:center">
+    <div style="width:56px;height:56px;border:1px dashed rgba(255,255,255,.5);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:10px;margin-bottom:22px">โลโก้</div>
+    <div style="font-size:30px;font-weight:700;line-height:1.35;max-width:420px">ระบบติดตามความร่วมมืออาชีวศึกษากับสถานประกอบการ</div>
+    <div style="font-size:15px;opacity:.85;margin-top:14px;max-width:420px">DVE PPP · สำนักงานคณะกรรมการการอาชีวศึกษา · ปีการศึกษา {{ year }}</div>
+    <div style="display:flex;gap:26px;margin-top:34px">
+      <div><div style="font-size:26px;font-weight:700">75</div><div style="font-size:12.5px;opacity:.8">นิคมอุตสาหกรรม</div></div>
+      <div><div style="font-size:26px;font-weight:700">80</div><div style="font-size:12.5px;opacity:.8">สอจ.</div></div>
+      <div><div style="font-size:26px;font-weight:700">2,721</div><div style="font-size:12.5px;opacity:.8">สถานประกอบการในระบบ</div></div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showPicker }}" hint-placeholder-val="{{ false }}">
+<div style="padding:36px 40px 60px;max-width:1000px;margin:0 auto">
+  <h1 style="margin:0 0 4px;font-size:26px;font-weight:700">เลือกนิคมฯ ที่จะทำงาน</h1>
+  <p style="margin:0 0 22px;font-size:14.5px;color:var(--ink-2)">วิทยาลัยเทคนิคกาญจนบุรี รับผิดชอบ 3 นิคมฯ ในปีการศึกษา {{ year }} — ข้อมูลทุกหน้าจะถูกกรองตามนิคมฯ ที่เลือก</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+    <sc-for list="{{ pickerCards }}" as="c" hint-placeholder-count="3">
+      <button onClick="{{ c.click }}" style="text-align:left;cursor:pointer;background:var(--surface);border:1px solid {{ c.border }};border-radius:12px;padding:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:16px;font-weight:600;line-height:1.4">{{ c.name }}</div>
+        <div style="font-size:12.5px;color:var(--ink-3)">จ.{{ c.province }} · {{ c.total }} สถานประกอบการ</div>
+        <div style="display:flex;align-items:center;gap:9px">
+          <div style="flex:1;height:8px;background:var(--line-2);border-radius:99px;overflow:hidden"><div style="width:{{ c.w }}%;height:100%;background:{{ c.color }}"></div></div>
+          <span style="font-size:12.5px;font-weight:600;color:{{ c.color }}">{{ c.pct }}</span>
+        </div>
+        <div style="font-size:12.5px;font-weight:600;color:var(--brand)">{{ c.cta }}</div>
+      </button>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showAssign }}" hint-placeholder-val="{{ false }}">
+<div style="padding:26px 32px 60px">
+  <h1 style="margin:0;font-size:25px;font-weight:700">จัดการมอบหมายนิคมฯ และโควตา</h1>
+  <div style="font-size:13px;color:var(--ink-3);margin-bottom:18px">ปีการศึกษา {{ year }} · หนึ่งนิคมฯ มีได้หลาย สอจ. · การตั้งโควตาเองจะไม่ถูกเขียนทับเมื่อซิงก์ยอดสำรวจ</div>
+
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <input placeholder="ค้นหา สอจ. หรือนิคมฯ" style="flex:1;min-width:240px;padding:9px 12px;font-size:13.5px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink)">
+    <button style="padding:9px 13px;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:9px;cursor:pointer">ซิงก์ยอดสำรวจจริง</button>
+    <button style="padding:9px 13px;font-size:13px;border:0;background:var(--brand);color:var(--on-brand);border-radius:9px;cursor:pointer;font-weight:600">+ เพิ่มการมอบหมาย</button>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden">
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:1000px">
+        <thead>
+          <tr style="background:var(--brand);color:var(--on-brand)">
+            <th style="text-align:left;padding:11px 14px;font-size:13px;font-weight:600">สอจ. / วิทยาลัย</th>
+            <th style="text-align:left;padding:11px 14px;font-size:13px;font-weight:600">นิคมฯ ที่มอบหมาย</th>
+            <th style="text-align:right;padding:11px 14px;font-size:13px;font-weight:600">โควตาเป้าหมาย</th>
+            <th style="text-align:right;padding:11px 14px;font-size:13px;font-weight:600">สำรวจจริง</th>
+            <th style="text-align:left;padding:11px 14px;font-size:13px;font-weight:600">แหล่งที่มาโควตา</th>
+            <th style="text-align:left;padding:11px 14px;font-size:13px;font-weight:600">ใช้งาน</th>
+          </tr>
+        </thead>
+        <tbody>
+          <sc-for list="{{ assignRows }}" as="r" hint-placeholder-count="6">
+            <tr style="border-top:1px solid var(--line-2)">
+              <td style="padding:11px 14px"><div style="font-weight:500">{{ r.office }}</div><div style="font-size:12px;color:var(--ink-3)">{{ r.code }}</div></td>
+              <td style="padding:11px 14px">{{ r.estate }}</td>
+              <td style="padding:11px 14px;text-align:right"><input value="{{ r.quota }}" style="width:78px;padding:7px 9px;font-size:13.5px;text-align:right;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);font-variant-numeric:tabular-nums"></td>
+              <td style="padding:11px 14px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-2)">{{ r.actual }}</td>
+              <td style="padding:11px 14px"><span style="font-size:11.5px;padding:3px 9px;border-radius:20px;background:{{ r.srcBg }};color:{{ r.srcFg }}">{{ r.src }}</span></td>
+              <td style="padding:11px 14px">
+                <button onClick="{{ r.toggle }}" style="width:44px;height:24px;border:0;border-radius:99px;cursor:pointer;background:{{ r.swBg }};position:relative;padding:0">
+                  <span style="position:absolute;top:3px;left:{{ r.swX }}px;width:18px;height:18px;border-radius:50%;background:#fff"></span>
+                </button>
+              </td>
+            </tr>
+          </sc-for>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showSettings }}" hint-placeholder-val="{{ false }}">
+<div style="padding:26px 32px 60px;max-width:940px">
+  <h1 style="margin:0;font-size:25px;font-weight:700">ตั้งค่าระบบ</h1>
+  <div style="font-size:13px;color:var(--ink-3);margin-bottom:20px">ค่าที่เคย hardcode ในโค้ดเดิม ย้ายมาตั้งในหน้านี้ทั้งหมด</div>
+
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;box-shadow:var(--shadow);margin-bottom:16px">
+    <div style="font-size:16px;font-weight:600;margin-bottom:14px">ปีการศึกษา</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+      <div><label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:5px">ปีที่ใช้งานปัจจุบัน (พ.ศ.)</label><select style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)"><option>2569</option><option>2568</option></select></div>
+      <div><label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:5px">รอบการสำรวจที่เปิดรับ</label><select style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)"><option>1 — ภาคเรียนที่ 1</option><option>2 — ภาคเรียนที่ 2</option><option>3 — ภาคฤดูร้อน</option><option>Yearly — ตลอดปีการศึกษา</option></select></div>
+      <div><label style="display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:5px">หมดเวลาอัตโนมัติ (นาที)</label><input value="30" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)"></div>
+    </div>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;box-shadow:var(--shadow)">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+      <div style="font-size:16px;font-weight:600">ขั้นตอนเอกสารและกำหนดส่ง</div>
+      <span style="font-size:12px;color:var(--ink-3)">เปิดใช้ 3 จาก 5 ขั้นตอน</span>
+    </div>
+    <sc-for list="{{ settingSteps }}" as="s" hint-placeholder-count="5">
+      <div style="display:grid;grid-template-columns:26px 1fr 190px 150px 46px;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line-2)">
+        <span style="font-size:12.5px;color:var(--ink-3);font-weight:600">{{ s.n }}</span>
+        <input value="{{ s.name }}" style="width:100%;padding:9px 11px;font-size:13.5px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)">
+        <select style="width:100%;padding:9px 11px;font-size:13.5px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink)"><option>{{ s.docs }}</option></select>
+        <input value="{{ s.due }}" style="width:100%;padding:9px 11px;font-size:13.5px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink);font-variant-numeric:tabular-nums">
+        <button onClick="{{ s.toggle }}" style="width:44px;height:24px;border:0;border-radius:99px;cursor:pointer;background:{{ s.swBg }};position:relative;padding:0">
+          <span style="position:absolute;top:3px;left:{{ s.swX }}px;width:18px;height:18px;border-radius:50%;background:#fff"></span>
+        </button>
+      </div>
+    </sc-for>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button style="padding:10px 15px;font-size:13.5px;font-weight:600;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:9px;cursor:pointer">ยกเลิก</button>
+      <button style="padding:10px 15px;font-size:13.5px;font-weight:600;border:0;background:var(--brand);color:var(--on-brand);border-radius:9px;cursor:pointer">บันทึกการตั้งค่า</button>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showForum }}" hint-placeholder-val="{{ false }}">
+<div style="padding:26px 32px 60px;max-width:960px">
+  <div style="display:flex;align-items:flex-end;gap:16px;margin-bottom:18px;flex-wrap:wrap">
+    <div>
+      <h1 style="margin:0;font-size:25px;font-weight:700">กระดานสนทนา</h1>
+      <div style="font-size:13px;color:var(--ink-3)">ถาม-ตอบระหว่าง สอจ. และส่วนกลาง · แนบรูปได้</div>
+    </div>
+    <button style="margin-left:auto;padding:11px 16px;font-size:14px;font-weight:600;border:0;background:var(--brand);color:var(--on-brand);border-radius:10px;cursor:pointer">+ ตั้งกระทู้ใหม่</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <sc-for list="{{ topics }}" as="t" hint-placeholder-count="4">
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);display:flex;gap:14px;align-items:flex-start">
+        <div style="width:38px;height:38px;flex:none;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">{{ t.initials }}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+            <div style="font-size:15px;font-weight:600">{{ t.title }}</div>
+            <span style="font-size:11.5px;padding:2px 9px;border-radius:20px;background:{{ t.tagBg }};color:{{ t.tagFg }}">{{ t.tag }}</span>
+          </div>
+          <div style="font-size:13.5px;color:var(--ink-2);margin:4px 0 8px;line-height:1.6">{{ t.excerpt }}</div>
+          <div style="font-size:12px;color:var(--ink-3)">{{ t.author }} · {{ t.when }} · {{ t.replies }} ความเห็น</div>
+        </div>
+        <div style="font-size:12.5px;color:var(--brand);font-weight:600;white-space:nowrap">อ่านกระทู้ →</div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showMobile }}" hint-placeholder-val="{{ false }}">
+<div style="padding:32px 40px 70px">
+  <h1 style="margin:0 0 4px;font-size:25px;font-weight:700">มุมมองมือถือ 375px</h1>
+  <p style="margin:0 0 26px;font-size:14.5px;color:var(--ink-2)">สองหน้าที่ใช้ลงพื้นที่จริง — ตารางเปลี่ยนเป็นการ์ด และปุ่มหลักทุกปุ่มสูงไม่น้อยกว่า 44px</p>
+  <div style="display:flex;gap:34px;flex-wrap:wrap">
+
+    <div>
+      <div style="font-size:12.5px;font-weight:600;color:var(--ink-3);margin-bottom:9px">รายการสถานประกอบการ</div>
+      <div style="width:375px;border:1px solid var(--line);border-radius:22px;background:var(--bg);overflow:hidden;box-shadow:var(--shadow)">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--brand);color:var(--on-brand)">
+          <span style="font-size:17px">☰</span>
+          <div style="flex:1;min-width:0"><div style="font-size:11px;opacity:.85">นิคมฯ ที่กำลังทำงาน</div><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">นิคมอุตสาหกรรมเอเซีย (สุวรรณภูมิ)</div></div>
+          <span style="font-size:15px">☾</span>
+        </div>
+        <div style="padding:12px 14px;background:var(--surface);border-bottom:1px solid var(--line)">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span style="color:var(--ink-2)">68 / 112 แห่ง</span><span style="font-weight:600;color:var(--ok)">60.71%</span></div>
+          <div style="height:8px;background:var(--line-2);border-radius:99px;overflow:hidden"><div style="width:60.71%;height:100%;background:var(--ok)"></div></div>
+        </div>
+        <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+          <input placeholder="ค้นหาสถานประกอบการ" style="width:100%;padding:12px;font-size:14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)">
+          <sc-for list="{{ mobileCards }}" as="m" hint-placeholder-count="3">
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px">
+              <div style="font-size:14px;font-weight:600;line-height:1.4">{{ m.name }}</div>
+              <div style="font-size:12px;color:var(--ink-3);margin:3px 0 9px">{{ m.biz }} · สำรวจ {{ m.date }}</div>
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
+                <div style="flex:1;height:7px;background:var(--line-2);border-radius:99px;overflow:hidden"><div style="width:{{ m.score }}%;height:100%;background:{{ m.color }}"></div></div>
+                <span style="font-size:12px;font-weight:600;color:{{ m.color }}">{{ m.score }}</span>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button style="flex:1;height:44px;font-size:13.5px;font-weight:600;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:10px">ดู</button>
+                <button style="flex:1;height:44px;font-size:13.5px;font-weight:600;border:0;background:var(--brand);color:var(--on-brand);border-radius:10px">แก้ไข</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="padding:12px 14px;background:var(--surface);border-top:1px solid var(--line);position:sticky;bottom:0">
+          <button style="width:100%;height:48px;font-size:15px;font-weight:600;border:0;background:var(--brand);color:var(--on-brand);border-radius:11px">+ บันทึกแบบสำรวจใหม่</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:12.5px;font-weight:600;color:var(--ink-3);margin-bottom:9px">PPP-002 · ความต้องการกำลังคน</div>
+      <div style="width:375px;border:1px solid var(--line);border-radius:22px;background:var(--bg);overflow:hidden;box-shadow:var(--shadow)">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--brand);color:var(--on-brand)">
+          <span style="font-size:16px">←</span>
+          <div style="flex:1"><div style="font-size:13.5px;font-weight:600">แบบสำรวจ PPP-002</div><div style="font-size:11px;opacity:.85">ขั้นที่ 4 จาก 10 · ความสมบูรณ์ 72</div></div>
+        </div>
+        <div style="display:flex;gap:4px;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--line)">
+          <sc-for list="{{ mobileSteps }}" as="s" hint-placeholder-count="10">
+            <span style="flex:1;height:5px;border-radius:99px;background:{{ s.color }}"></span>
+          </sc-for>
+        </div>
+        <div style="padding:14px">
+          <div style="font-size:16px;font-weight:600;margin-bottom:10px">ความต้องการกำลังคน</div>
+          <label style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:12px">
+            <input type="checkbox" style="width:20px;height:20px;accent-color:var(--warn)">
+            <span style="font-size:13.5px;font-weight:500">ไม่ประสงค์รับนักเรียน/นักศึกษา</span>
+          </label>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+              <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--brand-soft);color:var(--brand)">ฝึกงาน</span>
+              <span style="font-size:13px;font-weight:600">ปวส.</span>
+            </div>
+            <div style="font-size:13.5px;font-weight:500;line-height:1.45">ช่างเทคนิคระบบขนส่งทางราง</div>
+            <div style="font-size:11.5px;color:var(--ink-3);margin-bottom:10px">รหัส 20101 · ทวิภาคี/ฝึกงาน</div>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+              <div style="flex:1"><div style="font-size:11px;color:var(--ink-3);margin-bottom:3px">ชาย</div><input value="8" style="width:100%;height:44px;padding:0 12px;font-size:15px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink)"></div>
+              <div style="flex:1"><div style="font-size:11px;color:var(--ink-3);margin-bottom:3px">หญิง</div><input value="4" style="width:100%;height:44px;padding:0 12px;font-size:15px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink)"></div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <span style="font-size:11px;padding:3px 9px;border-radius:20px;background:var(--ok-bg);color:var(--ok)">♿ รับผู้พิการ</span>
+              <span style="font-size:11px;padding:3px 9px;border-radius:20px;background:var(--info-bg);color:var(--info)">พ.ค.–ก.ย. 2569</span>
+            </div>
+          </div>
+          <button style="width:100%;height:46px;font-size:14px;font-weight:600;border:1px solid var(--brand);background:transparent;color:var(--brand);border-radius:11px">+ เพิ่มแถวความต้องการ</button>
+        </div>
+        <div style="display:flex;gap:8px;padding:12px 14px;background:var(--surface);border-top:1px solid var(--line)">
+          <button style="flex:1;height:48px;font-size:14px;font-weight:600;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:11px">บันทึกร่าง</button>
+          <button style="flex:1.4;height:48px;font-size:14px;font-weight:600;border:0;background:var(--brand);color:var(--on-brand);border-radius:11px">ถัดไป →</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</sc-if>
+
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1000}}">
+const ENTS = [
+  {name:"บริษัท ไทยซัมมิท ออโตพาร์ท อินดัสตรี จำกัด", biz:"ผลิตชิ้นส่วนยานยนต์", estate:"นิคมอุตสาหกรรมเอเซีย (สุวรรณภูมิ)", province:"สมุทรปราการ", score:92, demand:48, dis:true, welfare:true, dve:true, intern:true},
+  {name:"บริษัท ปตท. โกลบอล เคมิคอล จำกัด (มหาชน)", biz:"ปิโตรเคมี", estate:"นิคมอุตสาหกรรมมาบตาพุด", province:"ระยอง", score:78, demand:36, dis:false, welfare:true, dve:true, intern:false},
+  {name:"บริษัท เด็นโซ่ (ประเทศไทย) จำกัด", biz:"อิเล็กทรอนิกส์ยานยนต์", estate:"นิคมอุตสาหกรรมอมตะซิตี้ ชลบุรี", province:"ชลบุรี", score:85, demand:60, dis:true, welfare:true, dve:true, intern:true},
+  {name:"บริษัท ฮานา ไมโครอิเล็คโทรนิคส จำกัด (มหาชน)", biz:"ผลิตแผงวงจรอิเล็กทรอนิกส์", estate:"นิคมอุตสาหกรรมบางปะอิน", province:"พระนครศรีอยุธยา", score:64, demand:22, dis:false, welfare:false, dve:false, intern:true},
+  {name:"บริษัท สหพัฒนพิบูล จำกัด (มหาชน)", biz:"อุปโภคบริโภค", estate:"นิคมอุตสาหกรรมเอเซีย (สุวรรณภูมิ)", province:"สมุทรปราการ", score:45, demand:12, dis:false, welfare:true, dve:false, intern:true},
+  {name:"บริษัท ไออาร์พีซี จำกัด (มหาชน)", biz:"โรงกลั่นและปิโตรเคมี", estate:"นิคมอุตสาหกรรมมาบตาพุด", province:"ระยอง", score:88, demand:54, dis:true, welfare:true, dve:true, intern:true},
+];
+const ROWS = [
+  {office:"วิทยาลัยเทคนิคกาญจนบุรี", code:"1371016101", province:"กาญจนบุรี", estates:["นิคมอุตสาหกรรมกาญจนบุรี"], target:112, done:18},
+  {office:"วิทยาลัยเทคนิคสระแก้ว", code:"1325016101", province:"สระแก้ว", estates:["นิคมอุตสาหกรรมสระแก้ว"], target:64, done:12},
+  {office:"วิทยาลัยเทคนิคลำพูน", code:"1351016101", province:"ลำพูน", estates:["นิคมอุตสาหกรรมภาคเหนือ"], target:148, done:34},
+  {office:"วิทยาลัยเทคนิคนครสวรรค์", code:"1360016101", province:"นครสวรรค์", estates:["นิคมอุตสาหกรรมนครสวรรค์"], target:80, done:21},
+  {office:"วิทยาลัยเทคนิคปราจีนบุรี", code:"1325026101", province:"ปราจีนบุรี", estates:["นิคมฯ กบินทร์บุรี","นิคมฯ 304"], target:206, done:62},
+  {office:"วิทยาลัยเทคนิคสมุทรปราการ", code:"1311016101", province:"สมุทรปราการ", estates:["นิคมฯ เอเซีย (สุวรรณภูมิ)","นิคมฯ บางปู"], target:52, done:120},
+  {office:"วิทยาลัยเทคนิคสงขลา", code:"1390016101", province:"สงขลา", estates:["นิคมอุตสาหกรรมฉลุง"], target:96, done:31},
+  {office:"วิทยาลัยเทคนิคขอนแก่น", code:"1340016101", province:"ขอนแก่น", estates:["นิคมอุตสาหกรรมขอนแก่น"], target:74, done:26},
+];
+
+const ADMIN_SCREENS = ["dash","estates","uploads","assign","settings"];
+const PVEO_SCREENS = ["enterprises","survey","progress","forum"];
+const WIZ = ["ข้อมูลสถานประกอบการ","การลงพื้นที่","ประวัติการรับ","ความต้องการกำลังคน","ครูฝึกประสบการณ์","สวัสดิการ","ข้อสรุปการประชุม","ข้อเสนอแนะ","ปัญหาและอุปสรรค","ตรวจสอบและบันทึก"];
+
+class Component extends DCLogic {
+  state = {screen:"home", dark:false, year:"2569", region:"ทุกภาค", kpiFilter:null,
+    q:"", province:"", estate:"", tags:{dis:false, welfare:false, intern:false, dve:false},
+    wizStep:0, noStudent:false, uploadFilter:"ทั้งหมด", modal:null,
+    assignOff:{}, stepOff:{3:true, 4:true}, navId:"enterprises",
+    activeEstate:"นิคมอุตสาหกรรมเอเซีย (สุวรรณภูมิ)"};
+
+  componentDidMount(){ this.applyTheme(); }
+  applyTheme(){ document.documentElement.setAttribute("data-theme", this.state.dark ? "dark" : "light"); }
+  go(screen, navId){ return () => this.setState({screen, modal:null, navId: navId || screen}); }
+
+  filtered(){
+    const s = this.state, t = s.tags, q = s.q.trim();
+    return ENTS.filter(e =>
+      (!q || e.name.includes(q)) &&
+      (!s.province || e.province === s.province) &&
+      (!s.estate || e.estate === s.estate) &&
+      (!t.dis || e.dis) && (!t.welfare || e.welfare) &&
+      (!t.intern || e.intern) && (!t.dve || e.dve));
+  }
+
+  pctColor(p){ return p > 100 ? "var(--err)" : p >= 60 ? "var(--ok)" : p >= 30 ? "var(--warn)" : "var(--err)"; }
+
+  extraVals(){
+    const s = this.state, pc = (p) => this.pctColor(p);
+    const est = [
+      {name:"นิคมอุตสาหกรรมเอเซีย (สุวรรณภูมิ)", province:"สมุทรปราการ", offices:["วท.สมุทรปราการ","วท.กาญจนบุรี"], total:52, done:120, no:38},
+      {name:"นิคมอุตสาหกรรมมาบตาพุด", province:"ระยอง", offices:["วท.ระยอง"], total:186, done:142, no:61},
+      {name:"นิคมอุตสาหกรรมอมตะซิตี้ ชลบุรี", province:"ชลบุรี", offices:["วท.ชลบุรี","วท.สัตหีบ"], total:298, done:201, no:88},
+      {name:"นิคมอุตสาหกรรมบางปะอิน", province:"พระนครศรีอยุธยา", offices:["วท.อยุธยา"], total:164, done:74, no:29},
+      {name:"นิคมอุตสาหกรรมภาคเหนือ", province:"ลำพูน", offices:["วท.ลำพูน"], total:148, done:34, no:12},
+      {name:"นิคมอุตสาหกรรมสระแก้ว", province:"ไม่ระบุจังหวัด", offices:["วท.สระแก้ว"], total:64, done:12, no:5},
+    ];
+    const estateRows = est.map(e => { const p = e.done / e.total * 100; return {
+      name:e.name, province:e.province, offices:e.offices,
+      total:e.total.toLocaleString("en-US"), done:e.done.toLocaleString("en-US"),
+      pct:p.toFixed(2) + "%", w:Math.min(p, 100), color:pc(p), no:e.no,
+      rowBg: p > 100 ? "var(--err-bg)" : "transparent",
+      warn: p > 100 ? "⚠ บันทึกเกินเป้าหมาย — ตรวจสอบโควตา" : ""}; });
+
+    const up = [
+      {office:"วิทยาลัยเทคนิคสมุทรปราการ", code:"รหัส 1311016101", province:"สมุทรปราการ", estate:"นิคมฯ เอเซีย (สุวรรณภูมิ)", st:[2,1,1]},
+      {office:"วิทยาลัยเทคนิคระยอง", code:"รหัส 1321016101", province:"ระยอง", estate:"นิคมฯ มาบตาพุด", st:[2,2,1]},
+      {office:"วิทยาลัยเทคนิคกาญจนบุรี", code:"รหัส 1371016101", province:"กาญจนบุรี", estate:"นิคมฯ กาญจนบุรี", st:[2,1,0]},
+      {office:"วิทยาลัยเทคนิคลำพูน", code:"รหัส 1351016101", province:"ลำพูน", estate:"นิคมฯ ภาคเหนือ", st:[1,0,0]},
+      {office:"วิทยาลัยเทคนิคสระแก้ว", code:"รหัส 1325016101", province:"สระแก้ว", estate:"นิคมฯ สระแก้ว", st:[0,0,0]},
+      {office:"วิทยาลัยเทคนิคขอนแก่น", code:"รหัส 1340016101", province:"ขอนแก่น", estate:"นิคมฯ ขอนแก่น", st:[2,2,2]},
+    ];
+    const cellStyle = (v) => v === 2 ? {icon:"✔", text:"ครบ · Submit", bg:"var(--ok-bg)", fg:"var(--ok)"}
+      : v === 1 ? {icon:"◐", text:"บางส่วน", bg:"var(--warn-bg)", fg:"var(--warn)"}
+      : {icon:"✕", text:"ยังไม่ส่ง", bg:"var(--err-bg)", fg:"var(--err)"};
+    const stepNames = ["หนังสือนำ","คำสั่งแต่งตั้งคณะทำงาน","แผนงาน"];
+    const uploadRowsAll = up.map(r => {
+      const sum = r.st.reduce((a,b) => a + b, 0), p = sum / 6 * 100;
+      const status = sum === 6 ? "ครบแล้ว" : sum === 0 ? "ยังไม่อัปโหลด" : "บางส่วน";
+      const color = sum === 6 ? "var(--ok)" : sum === 0 ? "var(--err)" : "var(--warn)";
+      return {office:r.office, code:r.code, province:r.province, estate:r.estate,
+        cells: r.st.map((v, i) => ({...cellStyle(v),
+          open: () => this.setState({modal:{office:r.office, step:stepNames[i]}})})),
+        w:p, pct:p.toFixed(0) + "%", color, status,
+        statusIcon: sum === 6 ? "✔" : sum === 0 ? "✕" : "◐",
+        statusBg: sum === 6 ? "var(--ok-bg)" : sum === 0 ? "var(--err-bg)" : "var(--warn-bg)"};
+    });
+    const uploadRows = uploadRowsAll.filter(r => s.uploadFilter === "ทั้งหมด" || r.status === s.uploadFilter);
+
+    const entRows = ENTS.map((e, i) => ({
+      name:e.name, biz:e.biz, contact: i % 2 ? "นายสมชาย ใจดี · ผจก.บุคคล" : "นางสาวศิริพร วงศ์สุวรรณ · ผจก.บุคคล",
+      date:["24/08/2569","12/07/2569","03/07/2569","28/06/2569","15/06/2569","02/06/2569"][i],
+      score:e.score, color: e.score >= 80 ? "var(--ok)" : e.score >= 50 ? "var(--warn)" : "var(--err)",
+      status: e.dve || e.intern ? "รับนักศึกษา" : "ไม่ประสงค์รับ",
+      stBg: e.dve || e.intern ? "var(--ok-bg)" : "var(--warn-bg)",
+      stFg: e.dve || e.intern ? "var(--ok)" : "var(--warn)"}));
+
+    const done = [0,1,2,3,5];
+    const wizSteps = WIZ.map((label, i) => {
+      const isDone = done.includes(i) && i !== s.wizStep, cur = i === s.wizStep;
+      return {label: (i + 1) + ". " + label,
+        border: cur ? "var(--brand)" : "var(--line)",
+        bg: cur ? "var(--brand-soft)" : "var(--surface-2)",
+        fg: cur ? "var(--brand)" : isDone ? "var(--ink)" : "var(--ink-3)",
+        dotBg: cur ? "var(--brand)" : isDone ? "var(--ok-bg)" : "var(--line-2)",
+        dotFg: cur ? "var(--on-brand)" : isDone ? "var(--ok)" : "var(--ink-3)",
+        mark: isDone ? "✔" : String(i + 1),
+        go: () => this.setState({wizStep:i})};
+    });
+    const score = s.noStudent ? 40 : 72;
+
+    return {
+      estateRows, uploadRows, entRows, wizSteps,
+      uploadKpis: [
+        {icon:"👥", label:"สอจ. ทั้งหมด", value:"80", color:"var(--ink)", key:"ทั้งหมด"},
+        {icon:"✔", label:"อัปโหลดครบ", value:"72", color:"var(--ok)", key:"ครบแล้ว"},
+        {icon:"◐", label:"อัปโหลดบางส่วน", value:"4", color:"var(--warn)", key:"บางส่วน"},
+        {icon:"✕", label:"ยังไม่อัปโหลด", value:"4", color:"var(--err)", key:"ยังไม่อัปโหลด"},
+      ].map(k => ({...k, border: s.uploadFilter === k.key ? "var(--brand)" : "var(--line)",
+        click: () => this.setState({uploadFilter:k.key})})),
+      uploadFilters: ["ทั้งหมด","ครบแล้ว","บางส่วน","ยังไม่อัปโหลด"].map(f => { const on = s.uploadFilter === f;
+        return {label:f, bg: on ? "var(--brand)" : "var(--surface-2)", fg: on ? "var(--on-brand)" : "var(--ink-2)",
+          border: on ? "var(--brand)" : "var(--line)", click: () => this.setState({uploadFilter:f})}; }),
+      showFileModal: !!s.modal,
+      modalTitle: s.modal ? s.modal.step : "",
+      modalSub: s.modal ? s.modal.office + " · ปีการศึกษา " + s.year : "",
+      closeModal: () => this.setState({modal:null}),
+      modalFiles: [
+        {name:"หนังสือนำส่ง-สอจ-2569.pdf", meta:"PDF · 480 KB · อัปโหลด 12/05/2569"},
+        {name:"หนังสือเชิญประชุมสถานประกอบการ.pdf", meta:"PDF · 1.2 MB · อัปโหลด 12/05/2569"},
+        {name:"ภาพถ่ายการลงพื้นที่.jpg", meta:"JPG · 2.4 MB · อัปโหลด 18/05/2569"},
+      ],
+      stepIsInfo: s.wizStep === 0, stepIsDemand: s.wizStep === 3, stepIsSummary: s.wizStep === 9,
+      prevStep: () => this.setState(st => ({wizStep: Math.max(0, st.wizStep - 1)})),
+      nextStep: () => this.setState(st => ({wizStep: Math.min(9, st.wizStep + 1)})),
+      draftTime:"24/08/2569 14:32",
+      score, scoreDash:(score / 100 * 176).toFixed(0),
+      scoreColor: score >= 80 ? "var(--ok)" : score >= 50 ? "var(--warn)" : "var(--err)",
+      noStudent: s.noStudent, wantsStudent: !s.noStudent,
+      toggleNoStudent: () => this.setState(st => ({noStudent: !st.noStudent})),
+      noStudentBg: s.noStudent ? "var(--warn-bg)" : "var(--surface-2)",
+      noStudentBorder: s.noStudent ? "var(--warn)" : "var(--line)",
+      noStudentFg: s.noStudent ? "var(--warn)" : "var(--ink)",
+      demandGroups: [
+        {kind:"ฝึกงาน", level:"ปวช.", summary:"2 แถว · 18 คน", course:"ช่างยนต์", code:"20101", male:12, female:6, job:"ประกอบชิ้นส่วนยานยนต์", dis:false},
+        {kind:"ฝึกงาน", level:"ปวส.", summary:"1 แถว · 12 คน", course:"ช่างเทคนิคระบบขนส่งทางราง", code:"30105", male:8, female:4, job:"ซ่อมบำรุงระบบราง", dis:true},
+        {kind:"ทวิภาคี", level:"ปวช.", summary:"1 แถว · 10 คน", course:"ไฟฟ้ากำลัง", code:"20104", male:9, female:1, job:"ติดตั้งระบบไฟฟ้าโรงงาน", dis:false},
+        {kind:"ทวิภาคี", level:"ปวส.", summary:"1 แถว · 8 คน", course:"เทคโนโลยีสารสนเทศ", code:"30901", male:5, female:3, job:"ดูแลระบบเครือข่าย", dis:true},
+      ].map(g => ({kind:g.kind, level:g.level, summary:g.summary,
+        tagBg: g.kind === "ฝึกงาน" ? "var(--brand-soft)" : "var(--info-bg)",
+        tagFg: g.kind === "ฝึกงาน" ? "var(--brand)" : "var(--info)",
+        rows:[{course:g.course, code:"รหัส " + g.code, male:g.male, female:g.female, job:g.job,
+          tags:[g.dis && {label:"♿ รับผู้พิการ", bg:"var(--ok-bg)", fg:"var(--ok)"},
+                {label:"พ.ค.–ก.ย. 2569", bg:"var(--mute-bg)", fg:"var(--mute)"}].filter(Boolean)}]})),
+      scoreBreakdown: [
+        {label:"ข้อมูลพื้นฐาน", value:"10 / 10", icon:"✔", fg:"var(--ok)"},
+        {label:"ผู้ติดต่อ", value:"5 / 5", icon:"✔", fg:"var(--ok)"},
+        {label:"ช่องทางติดต่อ", value:"5 / 5", icon:"✔", fg:"var(--ok)"},
+        {label:"ความต้องการกำลังคน", value: s.noStudent ? "0 / 60" : "60 / 60", icon: s.noStudent ? "✕" : "✔", fg: s.noStudent ? "var(--err)" : "var(--ok)"},
+        {label:"ข้อสรุปการประชุม", value:"10 / 10", icon:"✔", fg:"var(--ok)"},
+        {label:"ข้อเสนอแนะ", value:"0 / 10", icon:"◐", fg:"var(--warn)"},
+      ],
+      summaryRows: [
+        {k:"สถานประกอบการ", v:"บริษัท ไทยซัมมิท ออโตพาร์ท อินดัสตรี จำกัด"},
+        {k:"ปีการศึกษา / รอบ", v:s.year + " · ภาคเรียนที่ 1"},
+        {k:"วันที่ลงพื้นที่", v:"18/06/2569"},
+        {k:"ความต้องการรวม", v: s.noStudent ? "ไม่ประสงค์รับนักเรียน/นักศึกษา" : "48 คน · 5 แถว · 4 กลุ่ม"},
+        {k:"สวัสดิการ", v:"ทุนการศึกษา 5,000 บาท · เบี้ยเลี้ยง 350 บาท/วัน · ประกันอุบัติเหตุ · ยูนิฟอร์ม"},
+        {k:"ผู้รับรองข้อมูล", v:"นายวิชัย พงษ์ไทย · รองผู้อำนวยการ · 034-511-XXX"},
+      ],
+      progressCards: [
+        {name:"หนังสือนำ", status:"เสร็จสิ้น", icon:"✔", due:"10 พฤษภาคม 2569", docs:"หนังสือนำส่ง สอจ. + หนังสือเชิญประชุม", state:"done"},
+        {name:"คำสั่งแต่งตั้งคณะทำงาน", status:"กำลังทำ", icon:"◐", due:"25 พฤษภาคม 2569", docs:"คำสั่งฯ ลงนามแล้ว 1 ไฟล์", state:"open"},
+        {name:"แผนงานและปฏิทินการลงพื้นที่", status:"ล็อก", icon:"🔒", due:"15 มิถุนายน 2569", docs:"แผนงานรายไตรมาส + ปฏิทินการลงพื้นที่", state:"locked"},
+      ].map(c => ({name:c.name, status:c.status, icon:c.icon, due:c.due, docs:c.docs,
+        locked: c.state === "locked", open: c.state !== "locked",
+        opacity: c.state === "locked" ? 0.72 : 1,
+        border: c.state === "open" ? "var(--brand)" : "var(--line)",
+        badgeBg: c.state === "done" ? "var(--ok-bg)" : c.state === "open" ? "var(--warn-bg)" : "var(--mute-bg)",
+        badgeFg: c.state === "done" ? "var(--ok)" : c.state === "open" ? "var(--warn)" : "var(--mute)",
+        dueColor: c.state === "open" ? "var(--warn)" : "var(--ink-3)",
+        files: c.state === "done"
+          ? [{name:"หนังสือนำส่ง-สอจ-2569.pdf", meta:"PDF · 480 KB · 12/05/2569"},
+             {name:"หนังสือเชิญประชุม.pdf", meta:"PDF · 1.2 MB · 12/05/2569"}]
+          : [{name:"คำสั่งแต่งตั้ง-ฉบับร่าง.pdf", meta:"PDF · 320 KB · รอลงนาม"}]})),
+      activityLog: [
+        {text:"ยืนยันเสร็จสิ้นขั้นตอนหนังสือนำ", who:"วท.กาญจนบุรี", when:"12/05/2569 16:04", color:"var(--ok)"},
+        {text:"อัปโหลด หนังสือเชิญประชุม.pdf", who:"วท.กาญจนบุรี", when:"12/05/2569 15:51", color:"var(--info)"},
+        {text:"ส่วนกลางส่งข้อความแจ้งเตือนกำหนดส่ง", who:"Admin สอศ.", when:"08/05/2569 09:12", color:"var(--warn)"},
+        {text:"บันทึกร่างขั้นตอนคำสั่งแต่งตั้ง", who:"วท.กาญจนบุรี", when:"06/05/2569 11:20", color:"var(--mute)"},
+        {text:"ได้รับมอบหมายนิคมฯ และโควตา 112 แห่ง", who:"Admin สอศ.", when:"01/05/2569 08:00", color:"var(--brand)"},
+      ],
+      loginRoles: [
+        {label:"สอจ. (รหัสวิทยาลัย)", on:true},
+        {label:"ผู้ดูแลระบบ", on:false},
+      ].map(r => ({label:r.label, bg: r.on ? "var(--brand)" : "transparent",
+        fg: r.on ? "var(--on-brand)" : "var(--ink-2)", click: () => {}})),
+      loginUserLabel:"รหัสวิทยาลัย",
+      pickerCards: [
+        {name:"นิคมอุตสาหกรรมเอเซีย (สุวรรณภูมิ)", province:"สมุทรปราการ", total:112, done:68},
+        {name:"นิคมอุตสาหกรรมกาญจนบุรี", province:"กาญจนบุรี", total:64, done:12},
+        {name:"นิคมอุตสาหกรรมราชบุรี", province:"ราชบุรี", total:48, done:31},
+      ].map(c => { const p = c.done / c.total * 100; const on = c.name === s.activeEstate;
+        return {name:c.name, province:c.province, total:c.total, w:p, pct:p.toFixed(0) + "%", color:pc(p),
+          border: on ? "var(--brand)" : "var(--line)", cta: on ? "● กำลังทำงานอยู่" : "เลือกนิคมฯ นี้ →",
+          click: () => this.setState({activeEstate:c.name, screen:"enterprises"})}; }),
+      mobileCards: ENTS.slice(0, 3).map((e, i) => ({name:e.name, biz:e.biz,
+        date:["24/08/2569","12/07/2569","03/07/2569"][i], score:e.score,
+        color: e.score >= 80 ? "var(--ok)" : e.score >= 50 ? "var(--warn)" : "var(--err)"})),
+      mobileSteps: WIZ.map((_, i) => ({color: i < 4 ? "var(--brand)" : "var(--line-2)"})),
+      assignRows: [
+        {office:"วิทยาลัยเทคนิคสมุทรปราการ", code:"รหัส 1311016101", estate:"นิคมอุตสาหกรรมเอเซีย (สุวรรณภูมิ)", quota:52, actual:120, src:"ตั้งเอง"},
+        {office:"วิทยาลัยเทคนิคกาญจนบุรี", code:"รหัส 1371016101", estate:"นิคมอุตสาหกรรมเอเซีย (สุวรรณภูมิ)", quota:112, actual:68, src:"ตั้งเอง"},
+        {office:"วิทยาลัยเทคนิคระยอง", code:"รหัส 1321016101", estate:"นิคมอุตสาหกรรมมาบตาพุด", quota:186, actual:142, src:"ซิงก์อัตโนมัติ"},
+        {office:"วิทยาลัยเทคนิคชลบุรี", code:"รหัส 1320016101", estate:"นิคมอุตสาหกรรมอมตะซิตี้ ชลบุรี", quota:298, actual:201, src:"ซิงก์อัตโนมัติ"},
+        {office:"วิทยาลัยเทคนิคลำพูน", code:"รหัส 1351016101", estate:"นิคมอุตสาหกรรมภาคเหนือ", quota:148, actual:34, src:"ซิงก์อัตโนมัติ"},
+        {office:"วิทยาลัยเทคนิคสระแก้ว", code:"รหัส 1325016101", estate:"นิคมอุตสาหกรรมสระแก้ว", quota:64, actual:12, src:"ตั้งเอง"},
+      ].map((r, i) => { const on = !s.assignOff[i]; return {...r,
+        srcBg: r.src === "ตั้งเอง" ? "var(--brand-soft)" : "var(--info-bg)",
+        srcFg: r.src === "ตั้งเอง" ? "var(--brand)" : "var(--info)",
+        swBg: on ? "var(--ok)" : "var(--line)", swX: on ? 23 : 3,
+        toggle: () => this.setState(st => ({assignOff:{...st.assignOff, [i]: !st.assignOff[i]}}))}; }),
+      settingSteps: [
+        {name:"หนังสือนำ", docs:"letter — หนังสือนำส่ง", due:"10/05/2569"},
+        {name:"คำสั่งแต่งตั้งคณะทำงาน", docs:"order — คำสั่งฯ", due:"25/05/2569"},
+        {name:"แผนงานและปฏิทินการลงพื้นที่", docs:"plan — แผนงาน", due:"15/06/2569"},
+        {name:"รายงานผลครั้งที่ 1", docs:"report1 — รายงานผล", due:"30/09/2569"},
+        {name:"สรุปผลการดำเนินงาน", docs:"summary — สรุปผล", due:"28/02/2570"},
+      ].map((st2, i) => { const on = !s.stepOff[i]; return {n:i + 1, name:st2.name, docs:st2.docs, due:st2.due,
+        swBg: on ? "var(--ok)" : "var(--line)", swX: on ? 23 : 3,
+        toggle: () => this.setState(st => ({stepOff:{...st.stepOff, [i]: !st.stepOff[i]}}))}; }),
+      topics: [
+        {initials:"กจ", title:"กรอกสาขาที่ไม่มีในรายการ 171 สาขา ต้องทำอย่างไร", tag:"แบบสำรวจ", author:"วท.กาญจนบุรี", when:"24/08/2569 10:12", replies:4, excerpt:"สถานประกอบการต้องการสาขาเมคคาทรอนิกส์และหุ่นยนต์ แต่ไม่พบในรายการที่เลือกได้"},
+        {initials:"สอ", title:"ประกาศ: ขยายกำหนดส่งขั้นตอนแผนงานถึง 15 มิ.ย. 2569", tag:"ประกาศส่วนกลาง", author:"Admin สอศ.", when:"20/08/2569 09:00", replies:1, excerpt:"เนื่องจากบาง สอจ. ยังลงพื้นที่ไม่ครบ ส่วนกลางขยายกำหนดส่งขั้นตอนที่ 3 ออกไป"},
+        {initials:"รย", title:"อัปโหลดไฟล์ PDF เกิน 10 MB ไม่ได้", tag:"ปัญหาการใช้งาน", author:"วท.ระยอง", when:"18/08/2569 14:40", replies:6, excerpt:"สแกนคำสั่งฯ 12 หน้าแล้วไฟล์ใหญ่เกินกำหนด ขอแนวทางบีบอัดไฟล์"},
+        {initials:"ลพ", title:"ตัวเลขเป้าหมายของนิคมฯ ภาคเหนือไม่ตรงกับที่ได้รับมอบหมาย", tag:"โควตา", author:"วท.ลำพูน", when:"12/08/2569 16:05", replies:3, excerpt:"ระบบแสดงเป้าหมาย 148 แห่ง แต่หนังสือมอบหมายระบุ 120 แห่ง"},
+      ].map(t => ({...t, tagBg: t.tag === "ประกาศส่วนกลาง" ? "var(--brand-soft)" : "var(--info-bg)",
+        tagFg: t.tag === "ประกาศส่วนกลาง" ? "var(--brand)" : "var(--info)"})),
+    };
+  }
+
+  renderVals(){
+    const s = this.state;
+    const isPveo = PVEO_SCREENS.includes(s.screen);
+    const isAdminArea = ADMIN_SCREENS.includes(s.screen);
+    const tabs = [
+      {label:"สาธารณะ", screen:"home", set:["home","search","login","picker"]},
+      {label:"สอจ.", screen:"enterprises", set:PVEO_SCREENS},
+      {label:"ผู้ดูแลระบบ", screen:"dash", set:ADMIN_SCREENS},
+      {label:"มือถือ", screen:"mobile", set:["mobile"]},
+      {label:"Design system", screen:"ds", set:["ds"]},
+    ].map(t => { const on = t.set.includes(s.screen); return {label:t.label,
+      bg: on ? "var(--brand)" : "transparent", fg: on ? "var(--on-brand)" : "var(--ink-2)",
+      go: this.go(t.screen)}; });
+    const yFactor = s.year === "2569" ? 1 : s.year === "2568" ? 0.82 : 0.61;
+    const n = (v) => Math.round(v * yFactor).toLocaleString("en-US");
+
+    const regionsRaw = [
+      {name:"ภาคกลาง", a:2140, b:1180},{name:"ภาคตะวันออก", a:1980, b:1420},
+      {name:"ภาคเหนือ", a:760, b:410},{name:"ภาคอีสาน", a:840, b:520},
+      {name:"ภาคใต้", a:520, b:280},{name:"ภาคตะวันตก", a:180, b:100}];
+    const max = Math.max(...regionsRaw.map(r => r.a + r.b));
+    const regions = regionsRaw.map(r => ({name:r.name, wA:(r.a/max)*100, wB:(r.b/max)*100,
+      total:Math.round((r.a + r.b) * yFactor).toLocaleString("en-US")}));
+
+    const progRaw = [
+      {name:"ภาคกลาง", d:1180, t:1620},{name:"ภาคตะวันออก", d:742, t:980},
+      {name:"ภาคเหนือ", d:281, t:640},{name:"ภาคตะวันออกเฉียงเหนือ", d:298, t:820},
+      {name:"ภาคใต้", d:152, t:560},{name:"ภาคตะวันตก", d:68, t:197}];
+    const regionProgress = progRaw
+      .filter(r => s.region === "ทุกภาค" || r.name.startsWith(s.region.replace("ภาคอีสาน","ภาคตะวันออกเฉียงเหนือ")))
+      .map(r => { const p = (r.d / r.t) * 100; return {name:r.name, w:Math.min(p,100),
+        color:this.pctColor(p), text:r.d.toLocaleString("en-US") + " / " + r.t.toLocaleString("en-US") + " (" + p.toFixed(1) + "%)"}; });
+
+    const kpiDefs = [
+      {key:"estates", icon:"🏭", label:"นิคมอุตสาหกรรม", value:"75", sub:"รับผิดชอบโดย 80 สอจ.", spark:"0,14 12,12 24,13 36,9 48,8 60,6"},
+      {key:"total", icon:"🏢", label:"สถานประกอบการเป้าหมาย", value:n(4817), sub:"เทียบปีก่อน +4.2%", spark:"0,16 12,13 24,11 36,9 48,6 60,4"},
+      {key:"saved", icon:"✔", label:"บันทึกเข้าระบบแล้ว", value:n(2721), sub:"+318 ใน 30 วัน", spark:"0,17 12,14 24,12 36,8 48,5 60,3"},
+      {key:"no", icon:"🚫", label:"ไม่ประสงค์รับนักเรียน/นักศึกษา", value:n(1742), sub:"64% ของที่บันทึกแล้ว", spark:"0,10 12,11 24,9 36,10 48,8 60,7"},
+      {key:"pct", icon:"📈", label:"ร้อยละความคืบหน้า", value:(56.49 * yFactor).toFixed(2) + "%", sub:"เป้าหมายสิ้นปี 80%", spark:"0,16 12,14 24,11 36,10 48,7 60,5"},
+    ];
+    const kpis = kpiDefs.map(k => ({...k,
+      border: s.kpiFilter === k.key ? "var(--brand)" : "var(--line)",
+      valueColor: k.key === "no" ? "var(--warn)" : "var(--ink)",
+      filterNote: s.kpiFilter === k.key ? "● กรองตารางอยู่" : "",
+      click: () => this.setState(st => ({kpiFilter: st.kpiFilter === k.key ? null : k.key}))}));
+
+    const rows = ROWS.map(r => { const p = (r.done / r.target) * 100; return {
+      office:r.office, code:"รหัส " + r.code, province:r.province, estates:r.estates,
+      target:r.target.toLocaleString("en-US"), done:r.done.toLocaleString("en-US"),
+      pct:p.toFixed(2) + "%", w:Math.min(p, 100), color:this.pctColor(p), flag: p > 100 ? "⚠" : ""}; });
+
+    const chipDefs = [{k:"intern", label:"รับฝึกงาน"},{k:"dve", label:"ทวิภาคี"},{k:"dis", label:"รับผู้พิการ"},{k:"welfare", label:"มีสวัสดิการ"}];
+    const chips = chipDefs.map(c => { const on = s.tags[c.k]; return {label:c.label,
+      bg: on ? "var(--brand)" : "var(--surface-2)", fg: on ? "var(--on-brand)" : "var(--ink-2)",
+      border: on ? "var(--brand)" : "var(--line)",
+      toggle: () => this.setState(st => ({tags:{...st.tags, [c.k]: !st.tags[c.k]}}))}; });
+
+    const res = this.filtered();
+    const results = res.map(e => ({
+      name:e.name, biz:e.biz, estate:e.estate, province:e.province,
+      score:"ความสมบูรณ์ " + e.score, demand:e.demand,
+      scoreBg: e.score >= 80 ? "var(--ok-bg)" : e.score >= 50 ? "var(--warn-bg)" : "var(--err-bg)",
+      scoreFg: e.score >= 80 ? "var(--ok)" : e.score >= 50 ? "var(--warn)" : "var(--err)",
+      tags:[
+        e.intern && {label:"ฝึกงาน", bg:"var(--brand-soft)", fg:"var(--brand)"},
+        e.dve && {label:"ทวิภาคี", bg:"var(--info-bg)", fg:"var(--info)"},
+        e.dis && {label:"♿ รับผู้พิการ", bg:"var(--ok-bg)", fg:"var(--ok)"},
+        e.welfare && {label:"สวัสดิการ", bg:"var(--mute-bg)", fg:"var(--mute)"}].filter(Boolean)}));
+
+    return {
+      tabs,
+      goPublic: this.go("home"), goSearch: this.go("search"), goDS: this.go("ds"),
+      goSurvey: this.go("survey"), goEnterprises: this.go("enterprises"),
+      goEstatePicker: this.go("picker"), goLogin: this.go("login"),
+      toggleTheme: () => this.setState(st => ({dark: !st.dark}), () => this.applyTheme()),
+      themeIcon: s.dark ? "☀" : "☾",
+      year:s.year, setYear:(e) => this.setState({year:e.target.value}),
+      region:s.region, setRegion:(e) => this.setState({region:e.target.value}),
+      scopeLabel:s.region,
+      isImpersonating: isPveo,
+      showSidebar: isAdminArea || isPveo,
+      sideTitle: isPveo ? "สอจ. · วิทยาลัยเทคนิคกาญจนบุรี" : "ส่วนกลาง",
+      activeEstate: isPveo ? s.activeEstate : "ทั้งประเทศ (75 นิคมฯ)",
+      showHome: s.screen === "home", showSearch: s.screen === "search",
+      showDash: s.screen === "dash", showDS: s.screen === "ds",
+      showEstates: s.screen === "estates", showUploads: s.screen === "uploads",
+      showEnterprises: s.screen === "enterprises", showSurvey: s.screen === "survey",
+      showProgress: s.screen === "progress", showLogin: s.screen === "login",
+      showAssign: s.screen === "assign", showSettings: s.screen === "settings",
+      showForum: s.screen === "forum",
+      showPicker: s.screen === "picker", showMobile: s.screen === "mobile",
+      userName: isAdminArea ? "ผู้ดูแลระบบ สอศ." : isPveo ? "วิทยาลัยเทคนิคกาญจนบุรี" : "ผู้เข้าชมทั่วไป",
+      userRole: isAdminArea ? "Admin · ทั้งประเทศ" : isPveo ? "สอจ. · รหัส 1371016101" : "ไม่ได้เข้าสู่ระบบ",
+      sideNav: (isPveo ? [
+        {icon:"🏢", label:"สถานประกอบการ", badge:"68", screen:"enterprises", id:"enterprises"},
+        {icon:"📝", label:"แบบสำรวจ PPP-002", badge:"", screen:"survey", id:"survey"},
+        {icon:"🗂", label:"รายงานความคืบหน้า", badge:"2/3", screen:"progress", id:"progress"},
+        {icon:"🏭", label:"ข้อมูลนิคมฯ ที่รับผิดชอบ", badge:"3", screen:"progress", id:"myEstates"},
+        {icon:"📊", label:"รายงานของฉัน", badge:"", screen:"progress", id:"myReports"},
+        {icon:"💬", label:"กระดานสนทนา", badge:"7", screen:"forum", id:"forum"},
+      ] : [
+        {icon:"◧", label:"แดชบอร์ดภาพรวม", badge:"", screen:"dash", id:"dash"},
+        {icon:"🏭", label:"ติดตามข้อมูลนิคมฯ", badge:"75", screen:"estates", id:"estates"},
+        {icon:"🗂", label:"สถานะการอัปโหลดไฟล์", badge:"4", screen:"uploads", id:"uploads"},
+        {icon:"👥", label:"จัดการ สอจ. และโควตา", badge:"80", screen:"assign", id:"assign"},
+        {icon:"⊞", label:"จัดการนิคมอุตสาหกรรม", badge:"", screen:"estates", id:"manageEstates"},
+        {icon:"📊", label:"รายงานและการส่งออก", badge:"", screen:"dash", id:"reports"},
+        {icon:"⚙", label:"ตั้งค่าระบบ", badge:"", screen:"settings", id:"settings"},
+      ]).map(i => { const on = i.id === s.navId; return {...i, weight: on ? 600 : 400,
+        bg: on ? "var(--brand-soft)" : "transparent", fg: on ? "var(--brand)" : "var(--ink-2)",
+        go: this.go(i.screen, i.id)}; }),
+      ...this.extraVals(),
+      regions,
+      publicKpis:[
+        {icon:"🏭", label:"นิคมอุตสาหกรรม", value:"75", delta:"", color:"var(--ink-3)"},
+        {icon:"🏢", label:"สถานประกอบการในระบบ", value:n(2721), delta:"+318", color:"var(--ok)"},
+        {icon:"👷", label:"ความต้องการกำลังคนรวม", value:n(10330), delta:"+6.1%", color:"var(--ok)"},
+        {icon:"♿", label:"แห่งที่รับผู้พิการ", value:n(128), delta:"", color:"var(--ink-3)"},
+      ],
+      disabilityList:[
+        {name:"บริษัท ไทยซัมมิท ออโตพาร์ท อินดัสตรี จำกัด", estate:"นิคมฯ เอเซีย (สุวรรณภูมิ)", type:"ทางการเคลื่อนไหว"},
+        {name:"บริษัท เด็นโซ่ (ประเทศไทย) จำกัด", estate:"นิคมฯ อมตะซิตี้ ชลบุรี", type:"ทางการได้ยิน"},
+        {name:"บริษัท ไออาร์พีซี จำกัด (มหาชน)", estate:"นิคมฯ มาบตาพุด", type:"ทางการเห็น"},
+        {name:"บริษัท ซีพี ออลล์ จำกัด (มหาชน)", estate:"นิคมฯ ลาดกระบัง", type:"ทางการเรียนรู้"},
+      ],
+      downloads:[
+        {name:"แบบสำรวจ PPP-002 (ฉบับล่าสุด)", meta:"PDF · 480 KB · ปรับปรุง 12/06/2569"},
+        {name:"คู่มือการบันทึกข้อมูลสำหรับ สอจ.", meta:"PDF · 2.1 MB"},
+        {name:"แบบรายงานความคืบหน้า", meta:"DOCX · 128 KB"},
+      ],
+      q:s.q, setQ:(e) => this.setState({q:e.target.value}),
+      fProvince:s.province, setProvince:(e) => this.setState({province:e.target.value}),
+      fEstate:s.estate, setEstate:(e) => this.setState({estate:e.target.value}),
+      chips, results, resultCount:res.length.toLocaleString("en-US"), noResults: res.length === 0,
+      clearFilters: () => this.setState({q:"", province:"", estate:"", tags:{dis:false, welfare:false, intern:false, dve:false}}),
+      kpis, regionProgress, rows,
+      tableNote: s.kpiFilter ? "กรองตามการ์ด KPI ที่เลือก · คลิกการ์ดเดิมเพื่อยกเลิก" : "คลิกการ์ด KPI ด้านบนเพื่อกรองตาราง",
+      donutA:(6420 / 10330 * 289).toFixed(0), donutPct:"62%",
+      brandScale:[["50","#FBF0F2"],["100","#F5DDE1"],["200","#E6B3BC"],["300","#CE7B89"],["400","#B14A5C"],["500","#94293D"],["600","#7F2233"],["700","#6D1A26"],["800","#5E1520"],["900","#4A0F18"]].map(([step,hex]) => ({step, hex})),
+      statuses:[
+        {icon:"✔", label:"ครบแล้ว", bg:"var(--ok-bg)", fg:"var(--ok)", use:"อัปโหลดครบ · Submit แล้ว"},
+        {icon:"◐", label:"บางส่วน", bg:"var(--warn-bg)", fg:"var(--warn)", use:"อัปโหลดไม่ครบ · ใกล้ครบกำหนด"},
+        {icon:"✕", label:"ยังไม่อัปโหลด", bg:"var(--err-bg)", fg:"var(--err)", use:"เกินกำหนด · ข้อมูลผิดปกติ"},
+        {icon:"i", label:"ข้อมูล", bg:"var(--info-bg)", fg:"var(--info)", use:"คำแนะนำ · สถานะกลาง"},
+        {icon:"🔒", label:"ล็อก", bg:"var(--mute-bg)", fg:"var(--mute)", use:"ขั้นตอนที่ยังไม่เปิด"},
+      ],
+      progressDemo:[
+        {label:"วิทยาลัยเทคนิคลำพูน", pct:"23.0%", w:23, color:"var(--err)", flag:""},
+        {label:"วิทยาลัยเทคนิคปราจีนบุรี", pct:"66.7%", w:67, color:"var(--ok)", flag:""},
+        {label:"วิทยาลัยเทคนิคสมุทรปราการ", pct:"230.92%", w:100, color:"var(--err)", flag:"⚠ เกินเป้าหมาย"},
+      ],
+      steps:[
+        {icon:"✔", name:"หนังสือนำ", note:"ครบ 2 ไฟล์ · ส่งแล้ว 12/05/2569", bg:"var(--ok-bg)", fg:"var(--ok)", titleColor:"var(--ink)"},
+        {icon:"✔", name:"คำสั่งแต่งตั้งคณะทำงาน", note:"ครบ 1 ไฟล์ · ส่งแล้ว 20/05/2569", bg:"var(--ok-bg)", fg:"var(--ok)", titleColor:"var(--ink)"},
+        {icon:"◐", name:"แผนงาน", note:"กำลังทำ · ครบกำหนด 25 พฤษภาคม 2569", bg:"var(--warn-bg)", fg:"var(--warn)", titleColor:"var(--ink)"},
+        {icon:"🔒", name:"รายงานผลครั้งที่ 1", note:"ล็อก — รอขั้นตอนก่อนหน้าเสร็จ", bg:"var(--mute-bg)", fg:"var(--mute)", titleColor:"var(--ink-3)"},
+        {icon:"🔒", name:"สรุปผลการดำเนินงาน", note:"ล็อก", bg:"var(--mute-bg)", fg:"var(--mute)", titleColor:"var(--ink-3)"},
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

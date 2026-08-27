@@ -1,0 +1,21 @@
+# DVE PPP — Apache configuration
+Options -Indexes
+DirectoryIndex index.php
+
+# ทุกคำขอที่ไม่ใช่ไฟล์จริง ให้ผ่าน front controller
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# ห้ามเข้าถึงไฟล์ตั้งค่าและซอร์สโดยตรง
+<FilesMatch "\.(sql|log|lock|md)$">
+  Require all denied
+</FilesMatch>
+
+# ไฟล์ที่ผู้ใช้อัปโหลดต้องไม่ถูกประมวลผลเป็น PHP
+<IfModule mod_php.c>
+  php_flag engine off
+</IfModule>
