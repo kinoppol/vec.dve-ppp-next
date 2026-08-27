@@ -30,8 +30,10 @@ abstract class Controller
             'sidebar'       => $this->sidebar(),
         ];
 
-        // A user still on their initial password gets one destination only.
-        if (Auth::check() && Auth::mustChangePassword() && Url::current() !== 'password/change') {
+        // A user still on their initial password gets one destination only —
+        // unless they chose "ข้ามไปก่อน", which holds only for this session.
+        if (Auth::check() && Auth::mustChangePassword() && !Auth::passwordChangePostponed()
+            && Url::current() !== 'password/change') {
             Url::redirect('password/change');
         }
 

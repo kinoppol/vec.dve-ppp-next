@@ -115,6 +115,18 @@ final class AuthController extends Controller
         Url::redirect(Auth::isAdmin() ? 'admin' : 'pveo');
     }
 
+    /**
+     * ข้ามการตั้งรหัสผ่านใหม่ไปก่อน — ผัดได้เฉพาะรอบการใช้งานนี้
+     * ธงในฐานข้อมูลไม่ถูกแตะ เข้าระบบครั้งหน้าจึงถูกถามอีก
+     */
+    public function postponePasswordChange(): void
+    {
+        Auth::requireLogin();
+        Auth::postponePasswordChange();
+        Session::flash('warn', 'ข้ามการตั้งรหัสผ่านใหม่ไว้ก่อน ระบบจะถามอีกครั้งเมื่อเข้าสู่ระบบครั้งถัดไป');
+        Url::redirect(Auth::isAdmin() ? 'admin' : 'pveo');
+    }
+
     /** ตัวเลือกปีการศึกษาบน top bar — แทนการ hardcode '2568' ในระบบเดิม */
     public function switchYear(): void
     {

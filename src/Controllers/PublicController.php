@@ -31,6 +31,7 @@ final class PublicController extends Controller
         $teacher     = $this->teacherTrainingPlaces($year);
         $welfare     = $this->welfarePlaces($year);
         $ofSurveyed  = 'จาก ' . num($surveyed) . ' แห่งที่สำรวจแล้ว';
+        $rest        = static fn (int $whole, int $part): int => max(0, $whole - $part);
 
         $this->view('pub/home', [
             'title' => 'ภาพรวมความร่วมมือทั้งประเทศ',
@@ -57,9 +58,10 @@ final class PublicController extends Controller
                     'unit'  => 'ปวช.',
                     'extra' => num($dve['hvc']),
                     'extraUnit' => 'ปวส.',
-                    'bar'   => pct($dve['vc'], $dve['vc'] + $dve['hvc'], 0),
-                    'cat' => 1,
-                    'hint'  => 'โดนัทคือสัดส่วน ปวช.',
+                    'donut' => $this->slices([
+                        ['label' => 'ปวช.', 'value' => $dve['vc'],  'cat' => 1],
+                        ['label' => 'ปวส.', 'value' => $dve['hvc'], 'cat' => 2],
+                    ]),
                 ],
                 [
                     'icon'  => '🧑‍🏭',
@@ -68,9 +70,10 @@ final class PublicController extends Controller
                     'unit'  => 'ปวช.',
                     'extra' => num($intern['hvc']),
                     'extraUnit' => 'ปวส.',
-                    'bar'   => pct($intern['vc'], $intern['vc'] + $intern['hvc'], 0),
-                    'cat' => 3,
-                    'hint'  => 'โดนัทคือสัดส่วน ปวช.',
+                    'donut' => $this->slices([
+                        ['label' => 'ปวช.', 'value' => $intern['vc'],  'cat' => 3],
+                        ['label' => 'ปวส.', 'value' => $intern['hvc'], 'cat' => 4],
+                    ]),
                 ],
                 [
                     'icon'  => '♿',
@@ -79,18 +82,22 @@ final class PublicController extends Controller
                     'unit'  => 'แห่ง',
                     'extra' => num($disabled['people']),
                     'extraUnit' => 'คน',
-                    'bar'   => pct($disabled['places'], $surveyed, 0),
-                    'cat' => 5,
                     'hint'  => $ofSurveyed,
+                    'donut' => $this->slices([
+                        ['label' => 'รับผู้พิการ',  'value' => $disabled['places'], 'cat' => 5],
+                        ['label' => 'ไม่ได้ระบุรับ', 'value' => $rest($surveyed, $disabled['places']), 'cat' => 8],
+                    ]),
                 ],
                 [
                     'icon'  => '🧑‍🏫',
                     'label' => 'รับครูของสถานศึกษาเข้าฝึกประสบการณ์อาชีพ',
                     'value' => num($teacher),
                     'unit'  => 'แห่ง',
-                    'bar'   => pct($teacher, $surveyed, 0),
-                    'cat' => 6,
                     'hint'  => $ofSurveyed,
+                    'donut' => $this->slices([
+                        ['label' => 'รับครู',     'value' => $teacher, 'cat' => 6],
+                        ['label' => 'ไม่รับครู', 'value' => $rest($surveyed, $teacher), 'cat' => 8],
+                    ]),
                 ],
                 [
                     'icon'  => '🗺',
@@ -99,8 +106,10 @@ final class PublicController extends Controller
                     'unit'  => 'สอจ.',
                     'extra' => num($pveoTotal),
                     'extraUnit' => 'ทั้งหมด',
-                    'bar'   => pct($pveoDone, $pveoTotal, 0),
-                    'cat' => 2,
+                    'donut' => $this->slices([
+                        ['label' => 'สำรวจแล้ว',    'value' => $pveoDone, 'cat' => 2],
+                        ['label' => 'ยังไม่สำรวจ', 'value' => $rest($pveoTotal, $pveoDone), 'cat' => 7],
+                    ]),
                 ],
                 [
                     'icon'  => '🏫',
@@ -113,9 +122,11 @@ final class PublicController extends Controller
                     'label' => 'สถานประกอบการที่มีสวัสดิการ',
                     'value' => num($welfare),
                     'unit'  => 'แห่ง',
-                    'bar'   => pct($welfare, $surveyed, 0),
-                    'cat' => 4,
                     'hint'  => $ofSurveyed,
+                    'donut' => $this->slices([
+                        ['label' => 'มีสวัสดิการ',   'value' => $welfare, 'cat' => 4],
+                        ['label' => 'ไม่มีสวัสดิการ', 'value' => $rest($surveyed, $welfare), 'cat' => 3],
+                    ]),
                 ],
             ],
             'demandSplit'   => $this->demandSplit($dve, $intern),
@@ -260,6 +271,29 @@ final class PublicController extends Controller
         }
 
         return $out;
+    }
+
+    /**
+     * เติมร้อยละให้ชิ้นส่วนของแผนภูมิโดนัท และตัดชิ้นที่เป็นศูนย์ทิ้ง
+     * ทุกชิ้นต้องมี cat (เลขสี 1-8) มาแล้ว — โดนัทไม่มีชิ้นไหนเป็นสีเทาราง
+     *
+     * @param list<array{label: string, value: int, cat: int}> $parts
+     * @return array{total: int, parts: list<array{label: string, value: int, share: float, cat: int}>}
+     */
+    private function slices(array $parts): array
+    {
+        $total = array_sum(array_column($parts, 'value'));
+        $out   = [];
+
+        foreach ($parts as $part) {
+            if ($part['value'] <= 0) {
+                continue;
+            }
+            $part['share'] = (float) (pct($part['value'], $total, 1) ?? 0);
+            $out[] = $part;
+        }
+
+        return ['total' => $total, 'parts' => $out];
     }
 
     /**

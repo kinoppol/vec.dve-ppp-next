@@ -28,4 +28,13 @@ use App\Core\Csrf;
     </label>
     <button class="btn btn-primary" type="submit" style="justify-content:center">บันทึกรหัสผ่านใหม่</button>
   </form>
+
+  <?php if (!empty($first)): ?>
+    <!-- ข้ามได้เฉพาะรอบนี้ ธงในฐานข้อมูลยังอยู่ เข้าระบบครั้งหน้าจะถูกถามอีก -->
+    <form method="post" action="<?= e(url('password/skip')) ?>" class="form-actions">
+      <?= Csrf::field() ?>
+      <button class="btn btn-ghost" type="submit">ข้ามไปก่อน</button>
+      <span class="hint">ระบบจะถามอีกครั้งเมื่อเข้าสู่ระบบครั้งถัดไป</span>
+    </form>
+  <?php endif; ?>
 </div>

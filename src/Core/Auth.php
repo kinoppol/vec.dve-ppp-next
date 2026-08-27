@@ -77,6 +77,23 @@ final class Auth
         return (bool) (self::user()['must_change_password'] ?? false);
     }
 
+    /**
+     * ผู้ใช้กด "ข้ามไปก่อน" ที่หน้าตั้งรหัสผ่านใหม่
+     *
+     * เก็บไว้ใน session ไม่ใช่ในฐานข้อมูล ธงในฐานข้อมูลยังเป็น 1 อยู่
+     * พอออกจากระบบแล้วเข้าใหม่ session ใหม่ก็จะถูกถามอีกครั้ง
+     */
+    public static function postponePasswordChange(): void
+    {
+        $_SESSION['password_change_postponed'] = true;
+    }
+
+    /** ยังต้องเปลี่ยนรหัสผ่านอยู่ แต่ขอผัดไว้ก่อนในรอบนี้ */
+    public static function passwordChangePostponed(): bool
+    {
+        return (bool) ($_SESSION['password_change_postponed'] ?? false);
+    }
+
     /** True while an admin is viewing the system as a PVEO office. */
     public static function isImpersonating(): bool
     {

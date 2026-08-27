@@ -52,6 +52,7 @@ $router->post('login',          [AuthController::class, 'login']);
 $router->post('logout',         [AuthController::class, 'logout']);
 $router->get('password/change', [AuthController::class, 'showChangePassword']);
 $router->post('password/change',[AuthController::class, 'changePassword']);
+$router->post('password/skip',  [AuthController::class, 'postponePasswordChange']);
 $router->post('context/year',   [AuthController::class, 'switchYear']);
 $router->post('context/estate', [AuthController::class, 'switchEstate']);
 $router->post('context/theme',  [AuthController::class, 'switchTheme']);
