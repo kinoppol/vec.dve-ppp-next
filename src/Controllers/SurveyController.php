@@ -126,15 +126,29 @@ final class SurveyController extends Controller
                     $surveyId,
                 ]
             );
-            Database::run('CALL RecalcEnterpriseCompleteness(?)', [$enterpriseId]);
+            $this->refreshCounters($enterpriseId, (string) $survey['survey_year']);
 
             Session::flash('ok', 'ส่งแบบสำรวจเรียบร้อยแล้ว');
             Url::redirect('pveo/enterprises/' . $enterpriseId);
         }
 
-        Database::run('CALL RecalcEnterpriseCompleteness(?)', [$enterpriseId]);
+        $this->refreshCounters($enterpriseId, (string) $survey['survey_year']);
         Session::flash('ok', 'บันทึกร่างขั้นตอนที่ ' . $step . ' แล้ว');
         Url::redirect('pveo/survey/' . $enterpriseId, ['step' => $next]);
+    }
+
+    /**
+     * ปรับยอดสำรวจและคะแนนความสมบูรณ์หลังบันทึกแบบสำรวจ
+     *
+     * บนฐานข้อมูลร่วม แอปนี้ไม่ได้สร้าง trigger ของตัวเอง (จะยิงซ้อนกับของ
+     * ระบบเดิมแล้วนับซ้ำ) จึงเรียกคำนวณเองตรงนี้แทน ทั้งสอง procedure เป็นแบบ
+     * "คำนวณใหม่" ไม่ใช่ "บวกเพิ่ม" เรียกซ้ำกี่ครั้งผลก็เท่าเดิม และถ้าระบบเดิม
+     * มี trigger คอยบวกให้อยู่แล้ว การคำนวณใหม่ก็ยังได้ค่าที่ถูกต้อง
+     */
+    private function refreshCounters(int $enterpriseId, string $year): void
+    {
+        Database::run('CALL PppRecountSurveyed(?, ?)', [$enterpriseId, $year]);
+        Database::run('CALL PppRecalcEnterpriseCompleteness(?)', [$enterpriseId]);
     }
 
     // ------------------------------------------------------- ราย ขั้นตอน ----

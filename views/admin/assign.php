@@ -75,7 +75,7 @@ use App\Core\Csrf;
 <div class="card" style="margin-top:var(--s-4)">
   <h3>ตั้งโควตาเป้าหมายรายนิคมฯ</h3>
   <p class="hint">โควตาที่ตั้งเองจะถูกทำเครื่องหมาย <code>is_manual = 1</code>
-    เพื่อไม่ให้ <code>SyncPveoEstateAssignments</code> เขียนทับ
+    เพื่อไม่ให้ <code>PppSyncPveoEstateAssignments</code> เขียนทับ
     ซึ่งสำคัญมากเมื่อมีหลาย สอจ. ดูแลนิคมเดียวกัน</p>
   <form method="post" action="<?= e(url('admin/assign/quota')) ?>" class="form-grid form-grid-2">
     <?= Csrf::field() ?>

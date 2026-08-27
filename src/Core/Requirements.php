@@ -151,6 +151,64 @@ final class Requirements
         );
     }
 
+    /** ตารางที่แปลว่า "ฐานข้อมูลนี้เป็นของระบบเดิม" ถ้ามีข้อมูลอยู่แล้ว */
+    public const LEGACY_TABLES = [
+        'provincial_vocational_offices',
+        'industrial_estates',
+        'enterprises',
+        'surveys',
+        'admins',
+    ];
+
+    /**
+     * ตรวจว่าฐานข้อมูลปลายทางมีข้อมูลของระบบเดิมอยู่ก่อนหรือไม่.
+     *
+     * ระบบเดิมกับระบบใหม่ใช้ชื่อตารางชุดเดียวกัน ถ้าผู้ติดตั้งกรอกชื่อฐานข้อมูล
+     * ของระบบเดิมเข้ามา migration จะไปทำงานทับข้อมูลจริง — โดยเฉพาะ 0004 ที่
+     * DROP แล้วสร้าง trigger/procedure ชื่อเดิมทับของระบบเดิม
+     *
+     * "เคยติดตั้งด้วยแอปนี้แล้ว" (มีตาราง schema_migrations) ไม่นับว่าเป็นของเดิม
+     *
+     * @return array{shared:bool, tables:array<string,int>, migrated:bool}
+     */
+    public static function legacyData(\PDO $pdo): array
+    {
+        $migrated = false;
+        try {
+            $migrated = (int) $pdo->query(
+                "SELECT COUNT(*) FROM information_schema.TABLES
+                  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . Migrator::TABLE . "'"
+            )->fetchColumn() > 0;
+        } catch (\Throwable) {
+            $migrated = false;
+        }
+
+        $found = [];
+        foreach (self::LEGACY_TABLES as $table) {
+            try {
+                $exists = (int) $pdo->query(
+                    "SELECT COUNT(*) FROM information_schema.TABLES
+                      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = " . $pdo->quote($table)
+                )->fetchColumn() > 0;
+                if (!$exists) {
+                    continue;
+                }
+                $rows = (int) $pdo->query('SELECT COUNT(*) FROM `' . $table . '`')->fetchColumn();
+                if ($rows > 0) {
+                    $found[$table] = $rows;
+                }
+            } catch (\Throwable) {
+                // อ่านไม่ได้ก็ถือว่าไม่พบ — ไม่ให้การตรวจสอบทำให้ติดตั้งไม่ได้
+            }
+        }
+
+        return [
+            'shared'   => $found !== [] && !$migrated,
+            'tables'   => $found,
+            'migrated' => $migrated,
+        ];
+    }
+
     /**
      * Thai collation preference. utf8mb4_thai_520_w2 exists on MySQL 8 but not
      * on MariaDB 10.4, so pick the best available rather than failing install.

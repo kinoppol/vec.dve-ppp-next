@@ -78,11 +78,12 @@ CREATE TABLE IF NOT EXISTS `vocational_curriculum` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- @DOWN
-DROP TABLE IF EXISTS `vocational_curriculum`;
-DROP TABLE IF EXISTS `college`;
-DROP TABLE IF EXISTS `college_types`;
-DROP TABLE IF EXISTS `sub_districts`;
-DROP TABLE IF EXISTS `districts`;
-DROP TABLE IF EXISTS `provinces`;
-DROP TABLE IF EXISTS `vec_region`;
-DROP TABLE IF EXISTS `geographies`;
+-- ไม่มีส่วนย้อนกลับโดยเจตนา
+--
+-- ตารางอ้างอิงทั้งหมดในไฟล์นี้เป็นของ "ระบบเดิม" ด้วย และอาจมีข้อมูลจริง
+-- (77 จังหวัด, อำเภอ/ตำบล, วิทยาลัย, 171 สาขาวิชา) อยู่ก่อนแล้ว
+-- ส่วน UP ใช้ CREATE TABLE IF NOT EXISTS จึงไม่เคยเขียนทับของเดิม
+-- ถ้าใส่ DROP TABLE ไว้ที่นี่ ปุ่ม "ย้อนกลับ" ในหน้า admin/migrations
+-- จะลบข้อมูลของระบบเดิมทิ้งทั้งหมด — ห้ามเพิ่มกลับเข้ามา
+--
+-- ต้องการรื้อจริง ให้ DBA ทำเองบนฐานข้อมูลที่ตั้งใจ พร้อมสำรองข้อมูลก่อน

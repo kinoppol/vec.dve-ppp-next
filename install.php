@@ -30,6 +30,8 @@ $root       = __DIR__;
 $installed  = Config::exists() && is_file($root . '/storage/installed.lock');
 $errors     = [];
 $notices    = [];
+// ตั้งค่าเมื่อพบว่าฐานข้อมูลปลายทางมีข้อมูลของระบบเดิมอยู่แล้ว
+$sharedWarning = null;
 $migrateLog = [];
 
 /** ผู้ติดตั้งซ้ำต้องยืนยันตัวตนก่อน */
@@ -105,22 +107,38 @@ if ($post && $step === 'database') {
                 }
 
                 Database::reset();
-                Database::connect($db, asDefault: true); // ยืนยันว่าเชื่อมต่อฐานข้อมูลจริงได้
+                $target = Database::connect($db, asDefault: true); // ยืนยันว่าเชื่อมต่อฐานข้อมูลจริงได้
 
-                $config = Config::all();
-                $config['db']  = $db;
-                $config['app'] = ($config['app'] ?? []) + [
-                    'name'                    => 'DVE PPP',
-                    'debug'                   => false,
-                    'session_name'            => 'dveppp_session',
-                    'session_timeout_minutes' => 30,
-                    'base_path'               => '',
-                    'key'                     => bin2hex(random_bytes(16)),
-                ];
-                Config::write($config);
+                // กันติดตั้งทับฐานข้อมูลของระบบเดิมโดยไม่ตั้งใจ — ทั้งสองระบบ
+                // ใช้ชื่อตารางชุดเดียวกัน และ 0004 จะสร้าง trigger ทับของเดิม
+                $legacy = Requirements::legacyData($target);
+                if ($legacy['shared'] && empty($_POST['confirm_shared_db'])) {
+                    $summary = [];
+                    foreach ($legacy['tables'] as $t => $rows) {
+                        $summary[] = $t . ' (' . number_format($rows) . ' แถว)';
+                    }
+                    $sharedWarning = implode(', ', $summary);
+                    $errors[] = 'ฐานข้อมูล "' . $db['database'] . '" มีข้อมูลของระบบเดิมอยู่แล้ว — '
+                              . 'กรุณายืนยันการใช้ฐานข้อมูลร่วมกันก่อนติดตั้ง';
+                }
 
-                header('Location: install.php?step=migrate');
-                exit;
+                // เขียน config ต่อเมื่อผ่านการตรวจฐานข้อมูลร่วมแล้วเท่านั้น
+                if ($errors === []) {
+                    $config = Config::all();
+                    $config['db']  = $db;
+                    $config['app'] = ($config['app'] ?? []) + [
+                        'name'                    => 'DVE PPP',
+                        'debug'                   => false,
+                        'session_name'            => 'dveppp_session',
+                        'session_timeout_minutes' => 30,
+                        'base_path'               => '',
+                        'key'                     => bin2hex(random_bytes(16)),
+                    ];
+                    Config::write($config);
+
+                    header('Location: install.php?step=migrate');
+                    exit;
+                }
             }
         } catch (Throwable $e) {
             $errors[] = 'เชื่อมต่อฐานข้อมูลไม่สำเร็จ: ' . $e->getMessage();
@@ -389,6 +407,29 @@ $stepIndex = $stepIndex === false ? 0 : (int) $stepIndex;
         <input class="input" type="password" name="password" autocomplete="new-password">
         <span class="hint">XAMPP ค่าเริ่มต้นคือผู้ใช้ root และรหัสผ่านว่าง</span>
       </label>
+      <?php if ($sharedWarning !== null): ?>
+        <div class="alert alert-info field-wide">
+          <span aria-hidden="true">ℹ</span>
+          <div>
+            <strong>ใช้ฐานข้อมูลร่วมกับระบบเดิม</strong>
+            <p>พบข้อมูลของระบบเดิมอยู่แล้ว: <?= e($sharedWarning) ?></p>
+            <p><strong>ระบบจะเพิ่มเท่านั้น ไม่แก้ของเดิม</strong> — สร้างตารางของแอปใหม่
+              (<code>app_settings</code>, <code>report_steps</code>, <code>share_links</code>,
+              <code>ppp_enterprise_completeness</code>), เพิ่มคอลัมน์รหัสผ่านแบบเข้ารหัสให้
+              <code>admins</code> กับ <code>provincial_vocational_offices</code>
+              (คอลัมน์เดิมอยู่ครบ ระบบเดิมยังล็อกอินได้) และสร้าง view/procedure
+              ที่ขึ้นต้นด้วย <code>v_ppp_</code> / <code>Ppp</code></p>
+            <p><strong>สิ่งที่จะไม่ถูกแตะ:</strong> ตารางและข้อมูลเดิมทุกตาราง,
+              trigger ของระบบเดิมทั้ง 3 ตัว, <code>SyncPveoEstateAssignments</code>,
+              <code>RecalcEnterpriseCompleteness</code>, <code>v_estate_progress</code>
+              และ <code>enterprise_completeness</code></p>
+            <label class="check">
+              <input type="checkbox" name="confirm_shared_db" value="1">
+              <span>ยืนยันใช้ฐานข้อมูลนี้ร่วมกับระบบเดิม (แนะนำให้สำรองข้อมูลก่อน)</span>
+            </label>
+          </div>
+        </div>
+      <?php endif; ?>
       <div class="form-actions field-wide">
         <a class="btn btn-ghost" href="install.php?step=requirements">ย้อนกลับ</a>
         <button class="btn btn-primary" type="submit">ทดสอบการเชื่อมต่อและบันทึก</button>

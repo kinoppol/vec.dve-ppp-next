@@ -62,7 +62,7 @@ final class AdminController extends Controller
                     (SELECT COALESCE(SUM(a.target_count), 0)
                        FROM pveo_estate_assignments a
                       WHERE a.estate_id = v.estate_id AND a.survey_year = ?) AS target_count
-               FROM v_estate_progress v
+               FROM v_ppp_estate_progress v
            ORDER BY v.estate_name',
             [$year]
         );
@@ -204,7 +204,7 @@ final class AdminController extends Controller
             Url::back('admin/assign');
         }
 
-        // is_manual = 1 กัน SyncPveoEstateAssignments เขียนทับโควตาที่ตั้งเอง
+        // is_manual = 1 กัน PppSyncPveoEstateAssignments เขียนทับโควตาที่ตั้งเอง
         Database::run(
             'INSERT INTO pveo_estate_assignments (pveo_id, estate_id, survey_year, target_count, is_manual, updated_at)
              VALUES (?,?,?,?,1,NOW())
@@ -219,7 +219,7 @@ final class AdminController extends Controller
     public function syncAssignments(): void
     {
         Auth::requireAdmin();
-        Database::run('CALL SyncPveoEstateAssignments(?)', [Context::year()]);
+        Database::run('CALL PppSyncPveoEstateAssignments(?)', [Context::year()]);
         Session::flash('ok', 'ปรับยอดสำรวจของปี ' . Context::year() . ' เรียบร้อยแล้ว (โควตาที่ตั้งเองไม่ถูกเขียนทับ)');
         Url::back('admin/assign');
     }

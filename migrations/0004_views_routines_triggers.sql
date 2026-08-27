@@ -1,11 +1,23 @@
--- 0004 — view / stored procedure / trigger
+-- 0004 — view / stored procedure ของแอปใหม่
 --
--- หมายเหตุ: schema.sql ที่ export จาก production มี trigger 3 ตัวที่ body ถูกตัด
--- ไม่สมบูรณ์ ไฟล์นี้จึงเขียน body ขึ้นใหม่ตามพฤติกรรมที่ระบบต้องการจริง
--- (ปรับปรุงยอดที่สำรวจแล้วให้ตรงกับข้อมูลใน surveys เสมอ)
+-- ออกแบบให้ติดตั้งลง "ฐานข้อมูลเดียวกับระบบเดิม" ได้อย่างปลอดภัย
+-- กติกาเดียวของไฟล์นี้: ห้ามแตะ object ที่ระบบเดิมเป็นเจ้าของ
+--
+--   1) ทุกอย่างที่สร้างที่นี่มีคำนำหน้า v_ppp_ / Ppp เสมอ จึงไม่ชนชื่อกับของเดิม
+--   2) ไม่มี DROP ... IF EXISTS ของชื่อเดิม (v_estate_progress,
+--      SyncPveoEstateAssignments, RecalcEnterpriseCompleteness) เด็ดขาด
+--   3) ไม่สร้าง trigger ใด ๆ — ดูเหตุผลท้ายไฟล์
+--
+-- ระบบเดิมมี trigger after_survey_insert / after_survey_delete /
+-- after_enterprise_completeness_update อยู่แล้ว (schema.sql ที่ export มา
+-- มี trigger 3 ตัวนี้แต่ body ถูกตัดไม่สมบูรณ์) การสร้างทับจะทำลายของเดิม
+-- ส่วนการสร้างเพิ่มด้วยชื่อใหม่ก็ไม่ได้ เพราะ MariaDB 10.2.3+ ยอมให้มีหลาย
+-- trigger ต่อหนึ่งเหตุการณ์ ของเราจะยิงซ้อนกับของเดิม แล้ว surveyed_count
+-- จะถูกบวกสองรอบ ที่นี่จึงใช้วิธี "คำนวณใหม่" แทน "บวกเพิ่ม" ซึ่งให้ผล
+-- เท่าเดิมเสมอไม่ว่าระบบเดิมจะมี trigger หรือไม่
 
-DROP VIEW IF EXISTS `v_estate_progress`;
-CREATE VIEW `v_estate_progress` AS
+DROP VIEW IF EXISTS `v_ppp_estate_progress`;
+CREATE VIEW `v_ppp_estate_progress` AS
 SELECT
     e.id                                   AS estate_id,
     e.estate_name                          AS estate_name,
@@ -25,8 +37,8 @@ FROM industrial_estates e
 LEFT JOIN provinces p ON p.id = e.province_id
 WHERE e.is_active = 1;
 
-DROP VIEW IF EXISTS `v_pveo_progress`;
-CREATE VIEW `v_pveo_progress` AS
+DROP VIEW IF EXISTS `v_ppp_pveo_progress`;
+CREATE VIEW `v_ppp_pveo_progress` AS
 SELECT
     o.id                                   AS pveo_id,
     o.college_code                         AS college_code,
@@ -45,8 +57,8 @@ GROUP BY o.id, o.college_code, o.college_name, p.province_name, a.survey_year;
 DELIMITER $$
 
 -- คำนวณยอดสำรวจจริงของปีที่ระบุ โดยไม่เขียนทับโควตาที่ตั้งเอง (is_manual = 1)
-DROP PROCEDURE IF EXISTS `SyncPveoEstateAssignments`$$
-CREATE PROCEDURE `SyncPveoEstateAssignments`(IN p_year VARCHAR(4))
+DROP PROCEDURE IF EXISTS `PppSyncPveoEstateAssignments`$$
+CREATE PROCEDURE `PppSyncPveoEstateAssignments`(IN p_year VARCHAR(4))
 BEGIN
     -- 1) สร้างแถวมอบหมายให้ครบตามความรับผิดชอบที่ยังใช้งานอยู่
     INSERT IGNORE INTO pveo_estate_assignments (pveo_id, estate_id, survey_year, target_count, surveyed_count, is_manual, updated_at)
@@ -69,6 +81,7 @@ BEGIN
 
     -- 3) เติมโควตาเริ่มต้นจากจำนวนสถานประกอบการในนิคมฯ เฉพาะแถวที่ยังไม่ตั้งเอง
     --    หนึ่งนิคมฯ อาจมีหลาย สอจ. จึงหารเป้าหมายตามจำนวน สอจ. ที่รับผิดชอบ
+    --    เงื่อนไข target_count = 0 ทำให้โควตาที่ระบบเดิมตั้งไว้แล้วไม่ถูกแตะ
     UPDATE pveo_estate_assignments a
       JOIN industrial_estates e ON e.id = a.estate_id
        SET a.target_count = GREATEST(
@@ -84,9 +97,32 @@ BEGIN
        AND a.target_count = 0;
 END$$
 
+-- คำนวณยอดสำรวจใหม่เฉพาะแถวที่เกี่ยวกับสถานประกอบการหนึ่งแห่ง
+--
+-- ใช้แทน trigger: เป็นการ "นับใหม่จาก surveys" ไม่ใช่ "บวกหนึ่ง" ผลลัพธ์จึง
+-- ถูกต้องเสมอ ไม่ว่าระบบเดิมจะมี trigger คอยบวกให้อยู่แล้วหรือไม่
+DROP PROCEDURE IF EXISTS `PppRecountSurveyed`$$
+CREATE PROCEDURE `PppRecountSurveyed`(IN p_enterprise_id INT UNSIGNED, IN p_year VARCHAR(4))
+BEGIN
+    UPDATE pveo_estate_assignments a
+      JOIN enterprises en ON en.estate_id = a.estate_id
+       SET a.surveyed_count = (
+             SELECT COUNT(DISTINCT s.enterprise_id)
+               FROM surveys s
+               JOIN enterprises en2 ON en2.id = s.enterprise_id
+              WHERE en2.estate_id = a.estate_id
+                AND s.survey_year = a.survey_year
+                AND s.pveo_id = a.pveo_id
+           ),
+           a.updated_at = NOW()
+     WHERE en.id = p_enterprise_id
+       AND a.survey_year = p_year;
+END$$
+
 -- คำนวณคะแนนความสมบูรณ์ 0–100 ของสถานประกอบการหนึ่งแห่ง
-DROP PROCEDURE IF EXISTS `RecalcEnterpriseCompleteness`$$
-CREATE PROCEDURE `RecalcEnterpriseCompleteness`(IN p_enterprise_id INT UNSIGNED)
+-- เขียนลง ppp_enterprise_completeness ของแอปใหม่ ไม่แตะตารางของระบบเดิม
+DROP PROCEDURE IF EXISTS `PppRecalcEnterpriseCompleteness`$$
+CREATE PROCEDURE `PppRecalcEnterpriseCompleteness`(IN p_enterprise_id INT UNSIGNED)
 BEGIN
     DECLARE v_score      TINYINT UNSIGNED DEFAULT 0;
     DECLARE v_missing    VARCHAR(500) DEFAULT '';
@@ -135,7 +171,7 @@ BEGIN
         SET v_missing = CONCAT(v_missing, 'ผู้รับรอง,');
     END IF;
 
-    INSERT INTO enterprise_completeness (enterprise_id, score, missing_sections, calculated_at)
+    INSERT INTO ppp_enterprise_completeness (enterprise_id, score, missing_sections, calculated_at)
     VALUES (p_enterprise_id, v_score, TRIM(TRAILING ',' FROM v_missing), NOW())
     ON DUPLICATE KEY UPDATE
         score = VALUES(score),
@@ -143,53 +179,13 @@ BEGIN
         calculated_at = NOW();
 END$$
 
--- trigger 1/3 — บันทึกแบบสำรวจใหม่: อัปเดตยอดสำรวจและคะแนนความสมบูรณ์
-DROP TRIGGER IF EXISTS `after_survey_insert`$$
-CREATE TRIGGER `after_survey_insert` AFTER INSERT ON `surveys`
-FOR EACH ROW
-BEGIN
-    UPDATE pveo_estate_assignments a
-      JOIN enterprises en ON en.id = NEW.enterprise_id
-       SET a.surveyed_count = a.surveyed_count + 1,
-           a.updated_at = NOW()
-     WHERE a.pveo_id = NEW.pveo_id
-       AND a.estate_id = en.estate_id
-       AND a.survey_year = NEW.survey_year;
-
-    CALL RecalcEnterpriseCompleteness(NEW.enterprise_id);
-END$$
-
--- trigger 2/3 — ลบแบบสำรวจ: ลดยอดสำรวจโดยไม่ให้ติดลบ
-DROP TRIGGER IF EXISTS `after_survey_delete`$$
-CREATE TRIGGER `after_survey_delete` AFTER DELETE ON `surveys`
-FOR EACH ROW
-BEGIN
-    UPDATE pveo_estate_assignments a
-      JOIN enterprises en ON en.id = OLD.enterprise_id
-       SET a.surveyed_count = GREATEST(0, a.surveyed_count - 1),
-           a.updated_at = NOW()
-     WHERE a.pveo_id = OLD.pveo_id
-       AND a.estate_id = en.estate_id
-       AND a.survey_year = OLD.survey_year;
-END$$
-
--- trigger 3/3 — คะแนนความสมบูรณ์เปลี่ยน: ประทับเวลาที่สถานประกอบการ
-DROP TRIGGER IF EXISTS `after_enterprise_completeness_update`$$
-CREATE TRIGGER `after_enterprise_completeness_update` AFTER UPDATE ON `enterprise_completeness`
-FOR EACH ROW
-BEGIN
-    IF NEW.score <> OLD.score THEN
-        UPDATE enterprises e SET e.updated_at = NOW() WHERE e.id = NEW.enterprise_id;
-    END IF;
-END$$
-
 DELIMITER ;
 
 -- @DOWN
-DROP TRIGGER IF EXISTS `after_enterprise_completeness_update`;
-DROP TRIGGER IF EXISTS `after_survey_delete`;
-DROP TRIGGER IF EXISTS `after_survey_insert`;
-DROP PROCEDURE IF EXISTS `RecalcEnterpriseCompleteness`;
-DROP PROCEDURE IF EXISTS `SyncPveoEstateAssignments`;
-DROP VIEW IF EXISTS `v_pveo_progress`;
-DROP VIEW IF EXISTS `v_estate_progress`;
+-- ย้อนกลับได้ เพราะทุก object ที่ลบเป็นของแอปใหม่ล้วน ๆ (คำนำหน้า v_ppp_ / Ppp)
+-- view, procedure และ trigger ของระบบเดิมไม่เคยถูกไฟล์นี้แตะตั้งแต่แรก
+DROP PROCEDURE IF EXISTS `PppRecalcEnterpriseCompleteness`;
+DROP PROCEDURE IF EXISTS `PppRecountSurveyed`;
+DROP PROCEDURE IF EXISTS `PppSyncPveoEstateAssignments`;
+DROP VIEW IF EXISTS `v_ppp_pveo_progress`;
+DROP VIEW IF EXISTS `v_ppp_estate_progress`;

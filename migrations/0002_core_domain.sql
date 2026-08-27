@@ -288,21 +288,12 @@ CREATE TABLE IF NOT EXISTS `replies` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- @DOWN
-DROP TABLE IF EXISTS `replies`;
-DROP TABLE IF EXISTS `topics`;
-DROP TABLE IF EXISTS `report_activity_log`;
-DROP TABLE IF EXISTS `report_files`;
-DROP TABLE IF EXISTS `report_progress`;
-DROP TABLE IF EXISTS `survey_past_trainings`;
-DROP TABLE IF EXISTS `survey_meeting_notes`;
-DROP TABLE IF EXISTS `survey_demand_disabilities`;
-DROP TABLE IF EXISTS `survey_demands`;
-DROP TABLE IF EXISTS `surveys`;
-DROP TABLE IF EXISTS `enterprise_completeness`;
-DROP TABLE IF EXISTS `enterprises`;
-DROP TABLE IF EXISTS `pveo_estate_assignments`;
-DROP TABLE IF EXISTS `industrial_estate_responsibility`;
-DROP TABLE IF EXISTS `industrial_estate_details`;
-DROP TABLE IF EXISTS `industrial_estates`;
-DROP TABLE IF EXISTS `provincial_vocational_offices`;
-DROP TABLE IF EXISTS `admins`;
+-- ไม่มีส่วนย้อนกลับโดยเจตนา
+--
+-- ตารางในไฟล์นี้คือข้อมูลหลักของระบบเดิมทั้งหมด — admins, สอจ., นิคมฯ,
+-- สถานประกอบการ, แบบสำรวจ, รายงาน, กระดานสนทนา
+-- ส่วน UP ใช้ CREATE TABLE IF NOT EXISTS จึงไม่เคยเขียนทับของเดิม
+-- แต่ถ้าใส่ DROP TABLE ไว้ที่นี่ ปุ่ม "ย้อนกลับ" ในหน้า admin/migrations
+-- จะลบฐานข้อมูลของระบบเดิมทิ้งทั้งระบบจากหน้าเว็บได้ — ห้ามเพิ่มกลับเข้ามา
+--
+-- ต้องการรื้อจริง ให้ DBA ทำเองบนฐานข้อมูลที่ตั้งใจ พร้อมสำรองข้อมูลก่อน

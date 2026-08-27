@@ -127,6 +127,43 @@ MariaDB does not make DDL transactional, so a mid-file failure leaves earlier st
 Each migration must therefore be self-contained. Prefer adding a new migration over editing one
 that has already run.
 
+### Sharing a database with the legacy system
+
+**This app is deployed into the legacy system's own database.** Both run against the same
+tables at the same time, so every migration is additive-only and must never touch an object the
+legacy system owns. `Requirements::legacyData()` detects an existing legacy dataset and
+`install.php` makes the operator confirm before installing into it.
+
+Rules that keep the two systems from fighting:
+
+- **Everything this app creates carries a `ppp_` / `v_ppp_` / `Ppp` prefix.** The legacy system
+  already owns `v_estate_progress`, `SyncPveoEstateAssignments`, `RecalcEnterpriseCompleteness`
+  and `enterprise_completeness`; 0004 creates its own `v_ppp_estate_progress`,
+  `PppSyncPveoEstateAssignments`, `PppRecalcEnterpriseCompleteness` and writes scores to
+  `ppp_enterprise_completeness` instead. Never add a `DROP ... IF EXISTS` for an unprefixed name.
+- **This app creates no triggers.** Production already has `after_survey_insert`,
+  `after_survey_delete` and `after_enterprise_completeness_update`. Replacing them destroys
+  legacy behaviour, and adding same-event triggers under new names double-counts, because
+  MariaDB 10.2.3+ runs every trigger registered for an event.
+- **Recompute, never increment.** `PppRecountSurveyed` recounts `surveyed_count` from `surveys`
+  rather than adding one, so the result is correct whether or not a legacy trigger already
+  incremented it, and calling it repeatedly is a no-op. `SurveyController::refreshCounters()` is
+  the only caller. Any new counter must follow the same rule.
+- **Rollbacks must not destroy legacy-owned data.** 0001 and 0002 are deliberately irreversible —
+  their `@DOWN` holds only an explanatory comment, because a `DROP TABLE` there would let an
+  admin wipe the legacy dataset from a web button. A down section with no executable statement
+  counts as non-reversible (`Migrator::isReversible()`), so the UI shows it as such and
+  `rollback()` refuses. Don't "fix" that by adding statements.
+- **Seed only into empty tables.** 0005 fills `geographies` / `vec_region` / `college_types`
+  only when they are empty (`JOIN (SELECT COUNT(*) ...) ON n = 0`), so a shared database keeps
+  the legacy reference rows untouched. Its rollback deletes `app_settings` rows only.
+- 0003 alters two legacy tables, and that is the one accepted intrusion: it *adds* nullable /
+  defaulted columns with `ADD COLUMN IF NOT EXISTS` and leaves `college_password` in place, so
+  legacy logins and legacy `INSERT`s that name their columns keep working.
+
+Verified against a simulated legacy database carrying its own views, routines and triggers: the
+full migration set changes nothing except adding those columns and the app's own objects.
+
 ## Database constraints
 
 The production schema is **frozen** — migration 0003 only *adds* columns

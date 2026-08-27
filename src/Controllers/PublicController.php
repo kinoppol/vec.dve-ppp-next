@@ -23,7 +23,7 @@ final class PublicController extends Controller
                 ['icon' => '♿', 'label' => 'แห่งที่รับผู้พิการ',      'value' => num($this->disabilityFriendly($year))],
             ],
             'estates' => Database::all(
-                'SELECT v.* FROM v_estate_progress v ORDER BY v.surveyed_count DESC LIMIT 10'
+                'SELECT v.* FROM v_ppp_estate_progress v ORDER BY v.surveyed_count DESC LIMIT 10'
             ),
         ], 'public');
     }
@@ -71,7 +71,7 @@ final class PublicController extends Controller
                FROM enterprises e
           LEFT JOIN industrial_estates est ON est.id = e.estate_id
           LEFT JOIN provinces p ON p.id = e.province_id
-          LEFT JOIN enterprise_completeness c ON c.enterprise_id = e.id
+          LEFT JOIN ppp_enterprise_completeness c ON c.enterprise_id = e.id
               WHERE {$whereSql}
            ORDER BY e.enterprise_name
               LIMIT {$perPage} OFFSET " . (($page - 1) * $perPage),

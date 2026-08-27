@@ -103,7 +103,7 @@ final class Migrator
                 'applied_at'  => $a['applied_at'] ?? null,
                 'duration_ms' => $a['duration_ms'] ?? null,
                 'applied_by'  => $a['applied_by'] ?? null,
-                'reversible'  => trim($f['down']) !== '',
+                'reversible'  => $this->isReversible($f['down']),
                 'checksum'    => $f['checksum'],
             ];
         }
@@ -191,8 +191,8 @@ final class Migrator
         if (!isset($files[$version])) {
             return ['ok' => false, 'message' => 'ไม่พบไฟล์ migration รุ่น ' . $version];
         }
-        if (trim($files[$version]['down']) === '') {
-            return ['ok' => false, 'message' => 'migration รุ่นนี้ไม่มีส่วน @DOWN จึงย้อนกลับไม่ได้'];
+        if (!$this->isReversible($files[$version]['down'])) {
+            return ['ok' => false, 'message' => 'migration รุ่นนี้ไม่มีคำสั่งย้อนกลับ จึงย้อนกลับไม่ได้'];
         }
         if (!isset($this->applied()[$version])) {
             return ['ok' => false, 'message' => 'migration รุ่นนี้ยังไม่ถูกใช้งาน'];
@@ -225,6 +225,19 @@ final class Migrator
             return null;
         }
         return $section === 'down' ? $files[$version]['down'] : $files[$version]['up'];
+    }
+
+    /**
+     * A down section counts as reversible only when it holds at least one real
+     * statement. Judging by raw text instead would treat a section that is only
+     * explanatory comments - which is how a deliberately irreversible migration
+     * documents itself - as reversible, and "rolling it back" would then run
+     * nothing while still deleting the schema_migrations row, leaving the
+     * migration marked pending on top of a schema it had already changed.
+     */
+    private function isReversible(string $down): bool
+    {
+        return $this->statements($down) !== [];
     }
 
     /** Split a file into [up, down] on the "-- @DOWN" marker. */

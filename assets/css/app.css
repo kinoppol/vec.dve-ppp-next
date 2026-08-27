@@ -201,6 +201,14 @@ textarea.input { min-height: 96px; resize: vertical; }
 .alert-err  { background: var(--err-bg);  color: var(--err);  border-color: var(--err); }
 .alert-info { background: var(--info-bg); color: var(--info); border-color: var(--info); }
 .alert strong, .alert code { color: inherit; }
+.alert p { margin: 4px 0 0; line-height: 1.6; }
+
+/* ช่องยืนยันความเสี่ยงในกล่องแจ้งเตือน — ต้องกดตัวหนังสือแล้วติ๊กได้ด้วย */
+.check {
+  display: flex; gap: var(--s-2); align-items: flex-start;
+  margin-top: var(--s-3); font-weight: 600; cursor: pointer; line-height: 1.6;
+}
+.check input { margin-top: 3px; flex: none; accent-color: currentColor; }
 
 /* ---------------------------------------------------------------- layout --- */
 .topbar {

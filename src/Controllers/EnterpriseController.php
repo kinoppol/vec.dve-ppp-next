@@ -111,7 +111,7 @@ final class EnterpriseController extends Controller
                       WHERE s.enterprise_id = e.id AND s.survey_year = ?
                       ORDER BY s.id DESC LIMIT 1) AS no_student
                FROM enterprises e
-          LEFT JOIN enterprise_completeness c ON c.enterprise_id = e.id
+          LEFT JOIN ppp_enterprise_completeness c ON c.enterprise_id = e.id
               WHERE {$whereSql}
            ORDER BY {$orderSql}
               LIMIT {$perPage} OFFSET " . (($page - 1) * $perPage),
@@ -174,7 +174,7 @@ final class EnterpriseController extends Controller
         );
 
         $id = (int) Database::pdo()->lastInsertId();
-        Database::run('CALL RecalcEnterpriseCompleteness(?)', [$id]);
+        Database::run('CALL PppRecalcEnterpriseCompleteness(?)', [$id]);
 
         Session::flash('ok', 'บันทึกสถานประกอบการเรียบร้อยแล้ว');
         Url::redirect('pveo/enterprises/' . $id);
@@ -189,7 +189,7 @@ final class EnterpriseController extends Controller
             'SELECT e.*, COALESCE(c.score, 0) AS score, c.missing_sections,
                     est.estate_name, COALESCE(p.province_name, "ไม่ระบุจังหวัด") AS province_name
                FROM enterprises e
-          LEFT JOIN enterprise_completeness c ON c.enterprise_id = e.id
+          LEFT JOIN ppp_enterprise_completeness c ON c.enterprise_id = e.id
           LEFT JOIN industrial_estates est ON est.id = e.estate_id
           LEFT JOIN provinces p ON p.id = e.province_id
               WHERE e.id = ?',
