@@ -15,7 +15,5 @@ DirectoryIndex index.php
   Require all denied
 </FilesMatch>
 
-# ไฟล์ที่ผู้ใช้อัปโหลดต้องไม่ถูกประมวลผลเป็น PHP
-<IfModule mod_php.c>
-  php_flag engine off
-</IfModule>
+# หมายเหตุ: การปิดไม่ให้ไฟล์อัปโหลดถูกรันเป็น PHP อยู่ใน uploads/.htaccess
+# ห้ามใส่ php_flag engine off ไว้ที่นี่ — มันจะปิด PHP ทั้งแอป
