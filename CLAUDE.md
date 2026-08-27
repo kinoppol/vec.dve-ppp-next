@@ -50,8 +50,15 @@ admin password to re-enter. Deleting `storage/installed.lock` is the documented 
 
 `.github/workflows/main.yml` deploys on **every push to `main`**: it SSHes to the production host
 (`secrets.SERVER_HOST`) and runs `git fetch origin && git reset --hard origin/main` in
-`/var/www/next`. No build, no test gate, no staging branch — a push is a release, and any tracked
-file edited by hand on the server is discarded. Untracked paths survive the reset, which is what
+`/var/www/next`. No build, no test gate, no staging branch — a push is meant to be a release, and
+any tracked file edited by hand on the server is discarded.
+
+**As of 2026-08-27 this pipeline has never succeeded.** Both runs so far (the commit that added
+the workflow, and the next one) fail in the SSH step within ~2 seconds, which is the signature of
+missing `SERVER_HOST` / `SERVER_USER` / `SERVER_SSH_KEY` secrets. Until someone sets them,
+production at `dve-ppp.vec.go.th/next/` is updated by hand and **pushing does not deploy** —
+verify against the live page rather than assuming. Note also that the deploy would only move
+code: migrations still have to be run from `admin/migrations` afterwards. Untracked paths survive the reset, which is what
 keeps `config/config.php`, `storage/installed.lock` and `uploads/reports/` alive (all are in
 `.gitignore`, along with `*.sql` — the real `ppp_db.sql` dump carries personal data and plaintext
 passwords and must never be committed).
