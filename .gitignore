@@ -12,6 +12,12 @@
 /uploads/reports/*
 !/uploads/reports/.gitkeep
 
+# ไฟล์ dump จากฐานข้อมูลจริง — มีข้อมูลส่วนบุคคลและรหัสผ่าน plaintext
+# ห้าม commit ขึ้น repository สาธารณะเด็ดขาด
+/ppp_db.sql
+/*.sql
+!/migrations/*.sql
+
 # ระบบปฏิบัติการ / เครื่องมือ
 Thumbs.db
 desktop.ini
