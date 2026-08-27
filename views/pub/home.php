@@ -39,6 +39,7 @@ $donutSvg = static function (array $parts, string $unit, string $sizeClass): str
   <span class="spacer"></span>
   <a class="btn" href="<?= e(url('search')) ?>">ค้นหาสถานประกอบการ</a>
   <a class="btn" href="<?= e(url('downloads')) ?>">ดาวน์โหลดแบบฟอร์ม</a>
+  <a class="btn" href="<?= e(url('board')) ?>">กระดานถามตอบ</a>
 </div>
 
 <div class="kpi-row">

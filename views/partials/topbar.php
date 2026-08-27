@@ -10,6 +10,7 @@ use App\Core\Context;
 $current = App\Core\Url::current();
 $tabs = [
     ['label' => 'สาธารณะ',      'href' => url(''),      'on' => $current === '' || str_starts_with($current, 'search') || str_starts_with($current, 'downloads')],
+    ['label' => 'กระดานถามตอบ', 'href' => url('board'), 'on' => str_starts_with($current, 'board')],
     ['label' => 'สอจ.',         'href' => url('pveo'),  'on' => str_starts_with($current, 'pveo'),  'show' => Auth::isPveo()],
     ['label' => 'ผู้ดูแลระบบ', 'href' => url('admin'), 'on' => str_starts_with($current, 'admin'), 'show' => Auth::isAdmin()],
 ];

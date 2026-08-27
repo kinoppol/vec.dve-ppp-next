@@ -129,6 +129,13 @@ Four edits, in this order, or the page will 404, be publicly reachable, or rende
 - `Controller` gives every action `input($key)` (trimmed, GET then POST), `page()` and `perPage()`
   (clamped 10–100, defaulting to `app_settings.rows_per_page`) — use those rather than reaching
   into `$_GET` / `$_POST`.
+- **The board (`board/*`) is the one screen built on legacy-shaped tables.** `topics.id` is a
+  `varchar(16)` the app must generate (`BoardController::newTopicId()`), `created_at` is a
+  `varchar` written as `Y-m-d H:i:s` so string order matches time order and the
+  `idx_created_at DESC` index still applies, and images are base64 in `mediumtext` — render them
+  through `image_src()`, which passes a `data:` URI, wraps bare legacy base64, and returns null
+  for anything else so a junk row cannot become an off-site `src`. There is no FK between
+  `topics` and `replies`: deleting a topic must delete its replies explicitly.
 - Settings live in `app_settings` behind `Settings::get/int/bool`; `Settings::DEFAULTS` is the
   authoritative key list and `Settings::put()` invalidates the static cache.
 

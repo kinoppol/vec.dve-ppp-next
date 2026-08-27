@@ -5,6 +5,7 @@ require __DIR__ . '/src/bootstrap.php';
 
 use App\Controllers\AdminController;
 use App\Controllers\AuthController;
+use App\Controllers\BoardController;
 use App\Controllers\EnterpriseController;
 use App\Controllers\MigrationController;
 use App\Controllers\ProgressController;
@@ -45,6 +46,16 @@ $router->get('',               [PublicController::class, 'home']);
 $router->get('search',         [PublicController::class, 'search']);
 $router->get('downloads',      [PublicController::class, 'downloads']);
 $router->get('share/{token}',  [PublicController::class, 'shared']);
+
+// --------------------------------------------------------- กระดานถามตอบ ----
+// อ่านได้ทุกคน ตั้งกระทู้/ตอบต้องเข้าสู่ระบบ ลบได้เฉพาะผู้ดูแลระบบ
+$router->get('board',                    [BoardController::class, 'index']);
+$router->get('board/new',                [BoardController::class, 'create']);
+$router->post('board/new',               [BoardController::class, 'store']);
+$router->post('board/reply/{id}/delete', [BoardController::class, 'destroyReply']);
+$router->get('board/{id}',               [BoardController::class, 'show']);
+$router->post('board/{id}/reply',        [BoardController::class, 'reply']);
+$router->post('board/{id}/delete',       [BoardController::class, 'destroy']);
 
 // ----------------------------------------------------------- เข้าสู่ระบบ ----
 $router->get('login',           [AuthController::class, 'showLogin']);

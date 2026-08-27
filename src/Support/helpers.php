@@ -94,6 +94,28 @@ if (!function_exists('str_excerpt')) {
     }
 }
 
+if (!function_exists('image_src')) {
+    /**
+     * ค่าใน topics.image / replies.image เป็น base64 ในคอลัมน์ข้อความ
+     * ของที่แอปนี้เขียนเองมี "data:...;base64," นำหน้าอยู่แล้ว ส่วนแถวเก่า
+     * ของระบบเดิมอาจเก็บ base64 เปล่า ๆ จึงเติมหัวให้ และคืน null เมื่อว่าง
+     */
+    function image_src(?string $raw): ?string
+    {
+        $raw = trim((string) $raw);
+        if ($raw === '') {
+            return null;
+        }
+        if (str_starts_with($raw, 'data:')) {
+            return $raw;
+        }
+        // กันค่าขยะไม่ให้กลายเป็น src ที่ยิงออกนอกเว็บ
+        return preg_match('#^[A-Za-z0-9+/=\s]+$#', $raw) === 1
+            ? 'data:image/jpeg;base64,' . preg_replace('/\s+/', '', $raw)
+            : null;
+    }
+}
+
 if (!function_exists('array_get')) {
     function array_get(array $array, string $key, mixed $default = null): mixed
     {
