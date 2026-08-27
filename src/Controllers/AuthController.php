@@ -15,17 +15,27 @@ final class AuthController extends Controller
         if (Auth::check()) {
             Url::redirect(Auth::isAdmin() ? 'admin' : 'pveo');
         }
+        // ไม่ตั้งค่าเริ่มต้นให้ — ผู้ใช้ต้องเลือกประเภทเองก่อน ไม่งั้นฟอร์มจะเปิดมา
+        // เป็นโหมด สอจ. เสมอ แล้วคนที่ตั้งใจเข้าเป็นผู้ดูแลระบบจะกรอกผิดช่อง
+        $mode = $this->input('mode');
+
         $this->view('auth/login', [
             'title' => 'เข้าสู่ระบบ',
-            'mode'  => $this->input('mode', 'pveo'),
+            'mode'  => in_array($mode, ['pveo', 'admin'], true) ? $mode : '',
         ], 'blank');
     }
 
     public function login(): void
     {
-        $mode     = $this->input('mode', 'pveo');
+        $mode     = $this->input('mode');
         $username = $this->input('username');
         $password = (string) ($_POST['password'] ?? '');
+
+        // ไม่เดาประเภทผู้ใช้ให้ — ถ้าไม่ได้ระบุมา ส่งกลับไปหน้าเลือกประเภท
+        if (!in_array($mode, ['pveo', 'admin'], true)) {
+            Session::flash('err', 'กรุณาเลือกประเภทผู้ใช้ก่อนเข้าสู่ระบบ');
+            Url::redirect('login');
+        }
 
         if ($username === '' || $password === '') {
             Session::flash('err', 'กรุณากรอกข้อมูลให้ครบทุกช่อง');
