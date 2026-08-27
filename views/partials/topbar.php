@@ -20,7 +20,8 @@ $initials = mb_substr(Auth::name(), 0, 2);
     <div class="brand-mark">PPP</div>
     <div>
       <div class="brand-name"><?= e($appName ?? 'DVE PPP') ?></div>
-      <div class="brand-sub hide-sm"><?= e($appTagline ?? 'ระบบติดตามความร่วมมือ') ?></div>
+      <?php $sub = $appTagline ?? 'ระบบฐานข้อมูลความต้องการกำลังคน เพื่อการจัดการอาชีวศึกษาระบบทวิภาคี ภายใต้ความร่วมมือระหว่างสถานประกอบการและสำนักงานคณะกรรมการการอาชีวศึกษา'; ?>
+      <div class="brand-sub hide-sm" title="<?= e($sub) ?>"><?= e($sub) ?></div>
     </div>
   </div>
 

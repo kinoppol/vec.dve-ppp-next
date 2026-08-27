@@ -34,7 +34,7 @@ header('X-Frame-Options: SAMEORIGIN');
 header('Referrer-Policy: same-origin');
 
 View::share('appName', (string) \App\Core\Settings::get('site_name', 'DVE PPP'));
-View::share('appTagline', (string) \App\Core\Settings::get('site_tagline', 'ระบบติดตามความร่วมมือ'));
+View::share('appTagline', (string) \App\Core\Settings::get('site_tagline', 'ระบบฐานข้อมูลความต้องการกำลังคน เพื่อการจัดการอาชีวศึกษาระบบทวิภาคี ภายใต้ความร่วมมือระหว่างสถานประกอบการและสำนักงานคณะกรรมการการอาชีวศึกษา'));
 View::share('theme', Context::theme());
 View::share('flash', Session::takeFlash());
 

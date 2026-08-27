@@ -14,14 +14,87 @@ final class PublicController extends Controller
     {
         $year = Context::year();
 
+        $demand    = $this->demandBySystem($year);   // ['dve' => [vc, hvc], 'internship' => [...]]
+        $dve       = $demand['dve'];
+        $intern    = $demand['internship'];
+        $estates   = Database::int('SELECT COUNT(*) FROM industrial_estates');
+        $companies = Database::int('SELECT COUNT(*) FROM enterprises');
+        $pveoTotal = Database::int('SELECT COUNT(*) FROM provincial_vocational_offices');
+        $disabled  = $this->disabilityStats($year);
+
         $this->view('pub/home', [
             'title' => 'ภาพรวมความร่วมมือทั้งประเทศ',
             'kpis'  => [
-                ['icon' => '🏭', 'label' => 'นิคมอุตสาหกรรม',        'value' => num(Database::int('SELECT COUNT(*) FROM industrial_estates'))],
-                ['icon' => '🏢', 'label' => 'สถานประกอบการในระบบ',  'value' => num(Database::int('SELECT COUNT(*) FROM enterprises'))],
-                ['icon' => '👷', 'label' => 'ความต้องการกำลังคนรวม', 'value' => num($this->demandTotal($year))],
-                ['icon' => '♿', 'label' => 'แห่งที่รับผู้พิการ',      'value' => num($this->disabilityFriendly($year))],
+                [
+                    'icon'  => '🏭',
+                    'label' => 'นิคมอุตสาหกรรมและสถานประกอบการ',
+                    'value' => num($estates),
+                    'unit'  => 'นิคม',
+                    'extra' => num($companies),
+                    'extraUnit' => 'สถานประกอบการ',
+                ],
+                [
+                    'icon'  => '👷',
+                    'label' => 'ความต้องการรับนักเรียน นักศึกษา รวม',
+                    'value' => num($dve['vc'] + $dve['hvc'] + $intern['vc'] + $intern['hvc']),
+                    'unit'  => 'คน',
+                ],
+                [
+                    'icon'  => '🤝',
+                    'label' => 'ทวิภาคี (ปวช. / ปวส.)',
+                    'value' => num($dve['vc']),
+                    'unit'  => 'คน',
+                    'extra' => num($dve['hvc']),
+                    'extraUnit' => 'คน',
+                    'hint'  => 'ปวช. / ปวส.',
+                ],
+                [
+                    'icon'  => '🧑‍🏭',
+                    'label' => 'ฝึกงาน (ปวช. / ปวส.)',
+                    'value' => num($intern['vc']),
+                    'unit'  => 'คน',
+                    'extra' => num($intern['hvc']),
+                    'extraUnit' => 'คน',
+                    'hint'  => 'ปวช. / ปวส.',
+                ],
+                [
+                    'icon'  => '♿',
+                    'label' => 'ข้อมูลการรับผู้พิการ',
+                    'value' => num($disabled['places']),
+                    'unit'  => 'แห่ง',
+                    'extra' => num($disabled['people']),
+                    'extraUnit' => 'คน',
+                ],
+                [
+                    'icon'  => '🧑‍🏫',
+                    'label' => 'รับครูของสถานศึกษาเข้าฝึกประสบการณ์อาชีพ',
+                    'value' => num($this->teacherTrainingPlaces($year)),
+                    'unit'  => 'แห่ง',
+                ],
+                [
+                    'icon'  => '🗺',
+                    'label' => 'สอจ. ที่ออกสำรวจแล้ว',
+                    'value' => num($this->pveoSurveyed($year)),
+                    'unit'  => 'สอจ.',
+                    'extra' => num($pveoTotal),
+                    'extraUnit' => 'ทั้งหมด',
+                ],
+                [
+                    'icon'  => '🏫',
+                    'label' => 'สถานศึกษาที่ออกสำรวจแล้ว',
+                    'value' => num($this->collegesSurveyed($year)),
+                    'unit'  => 'แห่ง',
+                ],
+                [
+                    'icon'  => '🎁',
+                    'label' => 'สถานประกอบการที่มีสวัสดิการ',
+                    'value' => num($this->welfarePlaces($year)),
+                    'unit'  => 'แห่ง',
+                ],
             ],
+            'businessTypes' => $this->businessTypeShare(),
+            'topDve'        => $this->topCourses($year, 'dve'),
+            'topIntern'     => $this->topCourses($year, 'internship'),
             'estates' => Database::all(
                 'SELECT v.* FROM v_ppp_estate_progress v ORDER BY v.surveyed_count DESC LIMIT 10'
             ),
@@ -131,25 +204,189 @@ final class PublicController extends Controller
         $admin->renderEstates('admin/estates', 'public', true);
     }
 
-    private function demandTotal(string $year): int
+    /**
+     * ความต้องการกำลังคนแยกตามระบบ (ทวิภาคี / ฝึกงาน) และระดับชั้น
+     * คิวรีเดียวแล้วแยกในฝั่ง PHP — หน้าแรกสาธารณะเปิดบ่อย จึงไม่ยิงซ้ำสี่รอบ
+     *
+     * @return array{dve: array{vc: int, hvc: int}, internship: array{vc: int, hvc: int}}
+     */
+    private function demandBySystem(string $year): array
     {
-        return Database::int(
-            'SELECT COALESCE(SUM(d.vc_male + d.vc_female + d.hvc_male + d.hvc_female), 0)
+        $out = ['dve' => ['vc' => 0, 'hvc' => 0], 'internship' => ['vc' => 0, 'hvc' => 0]];
+
+        $rows = Database::all(
+            'SELECT d.system_type,
+                    COALESCE(SUM(d.vc_male  + d.vc_female), 0)  AS vc,
+                    COALESCE(SUM(d.hvc_male + d.hvc_female), 0) AS hvc
                FROM survey_demands d
                JOIN surveys s ON s.id = d.survey_id
-              WHERE s.survey_year = ?',
+              WHERE s.survey_year = ?
+           GROUP BY d.system_type',
+            [$year]
+        );
+
+        foreach ($rows as $row) {
+            $key = (string) $row['system_type'];
+            if (isset($out[$key])) {
+                $out[$key] = ['vc' => (int) $row['vc'], 'hvc' => (int) $row['hvc']];
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * การรับผู้พิการ — นับทั้งจำนวนแห่งและจำนวนคนที่ประกาศรับ
+     * disability_flag เป็น enum('yes','no') ไม่ใช่ 0/1 ต้องเทียบด้วยสตริง
+     *
+     * @return array{places: int, people: int}
+     */
+    private function disabilityStats(string $year): array
+    {
+        $row = Database::first(
+            "SELECT COUNT(DISTINCT s.enterprise_id) AS places,
+                    COALESCE(SUM(d.vc_male + d.vc_female + d.hvc_male + d.hvc_female), 0) AS people
+               FROM survey_demands d
+               JOIN surveys s ON s.id = d.survey_id
+              WHERE d.disability_flag = 'yes' AND s.survey_year = ?",
+            [$year]
+        );
+
+        return [
+            'places' => (int) ($row['places'] ?? 0),
+            'people' => (int) ($row['people'] ?? 0),
+        ];
+    }
+
+    private function teacherTrainingPlaces(string $year): int
+    {
+        return Database::int(
+            "SELECT COUNT(DISTINCT s.enterprise_id)
+               FROM surveys s
+              WHERE s.teacher_training_status = 'yes' AND s.survey_year = ?",
             [$year]
         );
     }
 
-    private function disabilityFriendly(string $year): int
+    private function pveoSurveyed(string $year): int
+    {
+        return Database::int(
+            'SELECT COUNT(DISTINCT s.pveo_id) FROM surveys s WHERE s.survey_year = ?',
+            [$year]
+        );
+    }
+
+    private function collegesSurveyed(string $year): int
+    {
+        return Database::int(
+            "SELECT COUNT(DISTINCT s.target_college_code)
+               FROM surveys s
+              WHERE s.survey_year = ? AND s.target_college_code <> ''",
+            [$year]
+        );
+    }
+
+    /** มีสวัสดิการอย่างน้อยหนึ่งอย่าง — คอลัมน์ welfare_* ทั้งหมดเป็น tinyint(1) */
+    private function welfarePlaces(string $year): int
     {
         return Database::int(
             'SELECT COUNT(DISTINCT s.enterprise_id)
-               FROM survey_demands d
-               JOIN surveys s ON s.id = d.survey_id
-              WHERE d.disability_flag = 1 AND s.survey_year = ?',
+               FROM surveys s
+              WHERE s.survey_year = ?
+                AND (s.welfare_scholarship = 1 OR s.welfare_allowance = 1
+                  OR s.welfare_accident = 1 OR s.welfare_uniform = 1
+                  OR s.welfare_accommodation = 1 OR s.welfare_other_flag = 1)',
             [$year]
         );
+    }
+
+    /**
+     * สัดส่วนลักษณะกิจการ — หกอันดับแรก ที่เหลือยุบเป็น "อื่น ๆ"
+     *
+     * @return list<array{label: string, count: int, share: float}>
+     */
+    private function businessTypeShare(): array
+    {
+        $total = Database::int("SELECT COUNT(*) FROM enterprises WHERE business_type <> ''");
+        if ($total === 0) {
+            return [];
+        }
+
+        $rows = Database::all(
+            "SELECT e.business_type AS label, COUNT(*) AS n
+               FROM enterprises e
+              WHERE e.business_type <> ''
+           GROUP BY e.business_type
+           ORDER BY n DESC
+              LIMIT 6"
+        );
+
+        $out    = [];
+        $listed = 0;
+        foreach ($rows as $row) {
+            $n = (int) $row['n'];
+            $listed += $n;
+            $out[] = [
+                'label' => (string) $row['label'],
+                'count' => $n,
+                'share' => (float) (pct($n, $total, 0) ?? 0),
+            ];
+        }
+
+        if ($listed < $total) {
+            $rest  = $total - $listed;
+            $out[] = ['label' => 'อื่น ๆ', 'count' => $rest, 'share' => (float) (pct($rest, $total, 0) ?? 0)];
+        }
+
+        return $out;
+    }
+
+    /**
+     * 10 อันดับสาขาวิชาที่ต้องการมากที่สุดของระบบหนึ่ง ๆ
+     * ปวช. กับ ปวส. อยู่คนละคอลัมน์ จึง UNION ให้เป็นคนละแถวเหมือนระบบเดิม
+     *
+     * @return list<array{label: string, total: int, share: float}>
+     */
+    private function topCourses(string $year, string $systemType): array
+    {
+        $rows = Database::all(
+            "SELECT t.course_name, t.level, SUM(t.total) AS total FROM (
+                SELECT COALESCE(c.course_name, d.course_code) AS course_name,
+                       'ปวช.' AS level,
+                       SUM(d.vc_male + d.vc_female) AS total
+                  FROM survey_demands d
+                  JOIN surveys s ON s.id = d.survey_id
+             LEFT JOIN vocational_curriculum c ON c.course_code = d.course_code
+                 WHERE s.survey_year = ? AND d.system_type = ?
+              GROUP BY course_name
+                 UNION ALL
+                SELECT COALESCE(c.course_name, d.course_code),
+                       'ปวส.',
+                       SUM(d.hvc_male + d.hvc_female)
+                  FROM survey_demands d
+                  JOIN surveys s ON s.id = d.survey_id
+             LEFT JOIN vocational_curriculum c ON c.course_code = d.course_code
+                 WHERE s.survey_year = ? AND d.system_type = ?
+              GROUP BY course_name
+             ) t
+             GROUP BY t.course_name, t.level
+             HAVING total > 0
+             ORDER BY total DESC
+                LIMIT 10",
+            [$year, $systemType, $year, $systemType]
+        );
+
+        if ($rows === []) {
+            return [];
+        }
+
+        $max = max(array_map(static fn (array $r): int => (int) $r['total'], $rows));
+
+        return array_map(static fn (array $r): array => [
+            'label' => $r['course_name'] . ' - ' . $r['level'],
+            'total' => (int) $r['total'],
+            // เทียบกับอันดับหนึ่ง เพื่อให้แท่งยาวเต็มกรอบเหมือนกราฟแท่งของระบบเดิม
+            'share' => $max > 0 ? round((int) $r['total'] * 100 / $max) : 0,
+        ], $rows);
     }
 }

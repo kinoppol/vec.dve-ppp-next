@@ -270,7 +270,7 @@ $stepIndex = $stepIndex === false ? 0 : (int) $stepIndex;
     <div class="install-logo">PPP</div>
     <div>
       <h1>ติดตั้งระบบ DVE PPP</h1>
-      <p class="muted">ระบบติดตามความร่วมมือระหว่างอาชีวศึกษากับสถานประกอบการ</p>
+      <p class="muted">ระบบฐานข้อมูลความต้องการกำลังคน เพื่อการจัดการอาชีวศึกษาระบบทวิภาคี ภายใต้ความร่วมมือระหว่างสถานประกอบการและสำนักงานคณะกรรมการการอาชีวศึกษา</p>
     </div>
     <?php if ($installed): ?>
       <span class="badge badge-warn nw">ติดตั้งแล้ว — โหมดติดตั้งซ้ำ</span>

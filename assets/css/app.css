@@ -1,5 +1,5 @@
 /* =============================================================================
-   DVE PPP — ระบบติดตามความร่วมมือ
+   DVE PPP — ระบบฐานข้อมูลความต้องการกำลังคนฯ
    โทนหลัก "แดงเลือดหมู" (oxblood) + โหมดสว่าง/มืด
    ทุกสีต้องมาจากตัวแปร ห้ามใส่ค่าสีตรง ๆ ในหน้าใด ๆ
    ============================================================================= */
@@ -139,6 +139,17 @@ html[data-theme="dark"] .btn-primary:hover { background: var(--brand-300); borde
 .kpi-value { font-size: 34px; font-weight: 700; line-height: 1.2; letter-spacing: -.5px; }
 .kpi-label { font-size: 13px; color: var(--ink-2); }
 .kpi-delta { font-size: 12px; font-weight: 600; }
+/* ตัวเลขคู่บนการ์ดเดียว เช่น "69 นิคม / 2,847 สถานประกอบการ" */
+.kpi-unit { font-size: 13px; font-weight: 500; color: var(--ink-3); margin: 0 2px 0 4px; }
+.kpi-sep  { font-size: 22px; font-weight: 400; color: var(--ink-3); margin: 0 4px; }
+
+/* ------------------------------------------------------- แถบเปรียบเทียบ --- */
+/* กราฟแท่งของหน้าสาธารณะ — ทำด้วย CSS ล้วน ไม่มี JS ตามข้อกำหนดของระบบ */
+.bar-list { display: grid; gap: var(--s-3); }
+.bar-row  { display: grid; gap: 5px; }
+.bar-head { display: flex; align-items: baseline; gap: var(--s-2); font-size: 13px; line-height: 1.6; }
+.bar-head .spacer { flex: 1 1 auto; }
+.bar-num  { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
 
 /* ----------------------------------------------------------------- tables -- */
 .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
@@ -162,6 +173,9 @@ html[data-theme="dark"] .btn-primary:hover { background: var(--brand-300); borde
 .progress.is-low  > span { background: var(--err); }
 .progress.is-mid  > span { background: var(--warn); }
 .progress.is-over > span { background: var(--err); }
+/* สีสำหรับกราฟเปรียบเทียบ ไม่ได้สื่อสถานะ จึงไม่ใช้ ok/warn/err */
+.progress.is-brand > span { background: var(--brand); }
+.progress.is-info  > span { background: var(--info); }
 .progress-label { font-size: 12.5px; font-variant-numeric: tabular-nums; }
 
 /* ---------------------------------------------------------------- stepper -- */
@@ -253,7 +267,13 @@ textarea.input { min-height: 96px; resize: vertical; }
   font-size: 11px; font-weight: 700; flex: none;
 }
 .brand-name { font-size: 14px; font-weight: 700; letter-spacing: .2px; }
-.brand-sub { font-size: 11px; color: var(--ink-3); line-height: 1.2; }
+/* ชื่อระบบภาษาไทยแบบเต็มยาวมาก — จำกัดความกว้างและตัดที่สองบรรทัด
+   ไม่งั้นแถบบนจะถูกดันจนตัวสลับปี/นิคมฯ ตกบรรทัด (ชื่อเต็มอยู่ใน title) */
+.brand-sub {
+  font-size: 11px; color: var(--ink-3); line-height: 1.35;
+  max-width: 34ch; overflow: hidden; text-overflow: ellipsis;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+}
 .seg { display: flex; gap: 4px; padding: 3px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-md); }
 .seg a { padding: 6px 12px; font-size: 13px; font-weight: 500; border-radius: 7px; color: var(--ink-2); white-space: nowrap; }
 .seg a:hover { background: var(--surface); text-decoration: none; }

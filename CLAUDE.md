@@ -27,22 +27,34 @@ start "" http://localhost/vec.dve-ppp-next/install.php
 For a quick local run without Apache (base path becomes `/`):
 
 ```bash
-/c/xampp/php/php.exe -S 127.0.0.1:8765 _devrouter.php
+/c/xampp2/php/php.exe -S 127.0.0.1:8765 _devrouter.php
 ```
 
 `_devrouter.php` is not committed — it is three lines: serve real files, else `require index.php`.
 
-`php` is not on PATH; the XAMPP binary is `C:\xampp\php\php.exe` (PHP 8.2). Syntax-check
+`php` is not on PATH. This working copy sits in **xampp2's** document root, so use
+`C:\xampp2\php\php.exe` (PHP 8.2.12) — an unrelated `C:\xampp\php\php.exe` also exists on this
+machine. Syntax-check
 everything before committing — this prints nothing when the tree is clean:
 
 ```bash
-find . -name "*.php" -not -path "./project/*" -print0 | xargs -0 -n1 /c/xampp/php/php.exe -l | grep -v "^No syntax errors"
+find . -name "*.php" -not -path "./project/*" -print0 | xargs -0 -n1 /c/xampp2/php/php.exe -l | grep -v "^No syntax errors"
 ```
 
 **Installer.** `install.php` is standalone (it requires `src/bootstrap.php`, never `index.php`)
 and walks five steps: requirements → database → migrate → admin → done. It writes
 `config/config.php` and `storage/installed.lock`; once the lock exists the installer demands the
 admin password to re-enter. Deleting `storage/installed.lock` is the documented reset path.
+
+## Deployment
+
+`.github/workflows/main.yml` deploys on **every push to `main`**: it SSHes to the production host
+(`secrets.SERVER_HOST`) and runs `git fetch origin && git reset --hard origin/main` in
+`/var/www/next`. No build, no test gate, no staging branch — a push is a release, and any tracked
+file edited by hand on the server is discarded. Untracked paths survive the reset, which is what
+keeps `config/config.php`, `storage/installed.lock` and `uploads/reports/` alive (all are in
+`.gitignore`, along with `*.sql` — the real `ppp_db.sql` dump carries personal data and plaintext
+passwords and must never be committed).
 
 ## Architecture
 
@@ -96,6 +108,13 @@ Four edits, in this order, or the page will 404, be publicly reachable, or rende
   and `renderUploads()` take `($template, $layout, $readOnly)`; `PublicController::shared()`
   calls them with the `public` layout after validating a `share_links` token. A new admin screen
   that should be shareable follows the same split rather than growing a public duplicate.
+- **Login is two-step.** `AuthController::login()` requires an explicit `mode` of `pveo` or
+  `admin` and never guesses; without it the POST bounces back to the type picker. The two roles
+  authenticate against different tables (`admins` / `provincial_vocational_offices`), so guessing
+  would hand the password to the wrong verifier.
+- `Controller` gives every action `input($key)` (trimmed, GET then POST), `page()` and `perPage()`
+  (clamped 10–100, defaulting to `app_settings.rows_per_page`) — use those rather than reaching
+  into `$_GET` / `$_POST`.
 - Settings live in `app_settings` behind `Settings::get/int/bool`; `Settings::DEFAULTS` is the
   authoritative key list and `Settings::put()` invalidates the static cache.
 

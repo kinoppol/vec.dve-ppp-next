@@ -17,7 +17,7 @@ final class Settings
         'report_step_count'   => '5',    // old system built 5 steps and shipped 2
         'report_deadline'     => '',
         'site_name'           => 'DVE PPP',
-        'site_tagline'        => 'ระบบติดตามความร่วมมือ',
+        'site_tagline'        => 'ระบบฐานข้อมูลความต้องการกำลังคน เพื่อการจัดการอาชีวศึกษาระบบทวิภาคี ภายใต้ความร่วมมือระหว่างสถานประกอบการและสำนักงานคณะกรรมการการอาชีวศึกษา',
         'rows_per_page'       => '25',
         'allow_public_search' => '1',
     ];
