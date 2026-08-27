@@ -55,13 +55,14 @@ final class AdminController extends Controller
 
         $rows = Database::all(
             'SELECT v.*,
-                    (SELECT GROUP_CONCAT(o.college_name SEPARATOR "|")
+                    (SELECT GROUP_CONCAT(COALESCE(c.college_name, o.college_code) SEPARATOR "|")
                        FROM industrial_estate_responsibility r
-                       JOIN provincial_vocational_offices o ON o.id = r.pveo_id
-                      WHERE r.estate_id = v.estate_id AND r.is_active = 1) AS pveo_names,
+                       JOIN provincial_vocational_offices o ON o.pveo_id = r.pveo_id
+                  LEFT JOIN college c ON c.college_code = o.college_code
+                      WHERE r.industrial_estate_id = v.estate_id AND r.is_active = 1) AS pveo_names,
                     (SELECT COALESCE(SUM(a.target_count), 0)
                        FROM pveo_estate_assignments a
-                      WHERE a.estate_id = v.estate_id AND a.survey_year = ?) AS target_count
+                      WHERE a.industrial_estate_id = v.estate_id AND a.survey_year = ?) AS target_count
                FROM v_ppp_estate_progress v
            ORDER BY v.estate_name',
             [$year]
@@ -107,19 +108,21 @@ final class AdminController extends Controller
         $stepCount = Settings::int('report_step_count', 5);
 
         $offices = Database::all(
-            'SELECT o.id, o.college_code, o.college_name,
-                    COALESCE(p.province_name, "ไม่ระบุจังหวัด") AS province_name
+            'SELECT o.pveo_id AS id, o.college_code,
+                    COALESCE(c.college_name, CONCAT("สอจ. ", o.college_code)) AS college_name,
+                    COALESCE(p.province_name_th, "ไม่ระบุจังหวัด") AS province_name
                FROM provincial_vocational_offices o
-          LEFT JOIN provinces p ON p.id = o.province_id
-              WHERE o.is_active = 1
-           ORDER BY o.college_name'
+          LEFT JOIN college c ON c.college_code = o.college_code
+          LEFT JOIN provinces p ON p.province_id = o.province_id
+           ORDER BY college_name'
         );
 
         $progress = Database::all(
-            'SELECT pveo_id, step_no, status, submitted_at,
-                    (SELECT COUNT(*) FROM report_files f WHERE f.progress_id = rp.id) AS file_count
+            'SELECT pveo_id, stage AS step_no, status, submitted_at,
+                    (SELECT COUNT(*) FROM report_files f
+                      WHERE f.progress_id = rp.id AND f.deleted_at IS NULL) AS file_count
                FROM report_progress rp
-              WHERE survey_year = ?',
+              WHERE academic_year = ?',
             [$year]
         );
 
@@ -134,7 +137,7 @@ final class AdminController extends Controller
             for ($i = 1; $i <= $stepCount; $i++) {
                 $p = $byOffice[(int) $office['id']][$i] ?? null;
                 $status = $p['status'] ?? 'pending';
-                if ($status === 'complete') {
+                if ($status === 'done') {
                     $done++;
                 }
                 $steps[$i] = ['status' => $status, 'files' => (int) ($p['file_count'] ?? 0)];
@@ -161,20 +164,21 @@ final class AdminController extends Controller
         $year = Context::year();
 
         $rows = Database::all(
-            'SELECT o.id AS pveo_id, o.college_code, o.college_name,
-                    COALESCE(p.province_name, "ไม่ระบุจังหวัด") AS province_name,
+            'SELECT o.pveo_id AS pveo_id, o.college_code,
+                    COALESCE(c.college_name, CONCAT("สอจ. ", o.college_code)) AS college_name,
+                    COALESCE(p.province_name_th, "ไม่ระบุจังหวัด") AS province_name,
                     o.password_hash IS NOT NULL AS has_password,
                     o.last_login_at,
-                    COUNT(DISTINCT r.estate_id) AS estate_count,
+                    COUNT(DISTINCT r.industrial_estate_id) AS estate_count,
                     COALESCE(SUM(a.target_count), 0)   AS target_total,
                     COALESCE(SUM(a.surveyed_count), 0) AS surveyed_total
                FROM provincial_vocational_offices o
-          LEFT JOIN provinces p ON p.id = o.province_id
-          LEFT JOIN industrial_estate_responsibility r ON r.pveo_id = o.id AND r.is_active = 1
-          LEFT JOIN pveo_estate_assignments a ON a.pveo_id = o.id AND a.survey_year = ?
-              WHERE o.is_active = 1
-           GROUP BY o.id, o.college_code, o.college_name, p.province_name, o.password_hash, o.last_login_at
-           ORDER BY o.college_name',
+          LEFT JOIN college c ON c.college_code = o.college_code
+          LEFT JOIN provinces p ON p.province_id = o.province_id
+          LEFT JOIN industrial_estate_responsibility r ON r.pveo_id = o.pveo_id AND r.is_active = 1
+          LEFT JOIN pveo_estate_assignments a ON a.pveo_id = o.pveo_id AND a.survey_year = ?
+           GROUP BY o.pveo_id, o.college_code, c.college_name, p.province_name_th, o.password_hash, o.last_login_at
+           ORDER BY college_name',
             [$year]
         );
 
@@ -206,7 +210,7 @@ final class AdminController extends Controller
 
         // is_manual = 1 กัน PppSyncPveoEstateAssignments เขียนทับโควตาที่ตั้งเอง
         Database::run(
-            'INSERT INTO pveo_estate_assignments (pveo_id, estate_id, survey_year, target_count, is_manual, updated_at)
+            'INSERT INTO pveo_estate_assignments (pveo_id, industrial_estate_id, survey_year, target_count, is_manual, updated_at)
              VALUES (?,?,?,?,1,NOW())
              ON DUPLICATE KEY UPDATE target_count = VALUES(target_count), is_manual = 1, updated_at = NOW()',
             [$pveoId, $estateId, Context::year(), $target]
@@ -322,8 +326,8 @@ final class AdminController extends Controller
 
     private function nationalKpis(string $year): array
     {
-        $estateCount  = Database::int('SELECT COUNT(*) FROM industrial_estates WHERE is_active = 1');
-        $targetTotal  = Database::int('SELECT COALESCE(SUM(enterprise_total), 0) FROM industrial_estates WHERE is_active = 1');
+        $estateCount  = Database::int('SELECT COUNT(*) FROM industrial_estates');
+        $targetTotal  = Database::int('SELECT COALESCE(SUM(total_enterprises), 0) FROM industrial_estate_details');
         $recorded     = Database::int('SELECT COUNT(*) FROM enterprises');
         $noStudent    = Database::int(
             'SELECT COUNT(DISTINCT enterprise_id) FROM surveys WHERE no_student_required = 1 AND survey_year = ?',
@@ -343,15 +347,15 @@ final class AdminController extends Controller
     private function regionProgress(): array
     {
         return Database::all(
-            'SELECT COALESCE(g.name, "ไม่ระบุภาค") AS region,
-                    COALESCE(SUM(e.enterprise_total), 0) AS target,
+            'SELECT COALESCE(g.geography_name, "ไม่ระบุภาค") AS region,
+                    COALESCE(SUM(d.total_enterprises), 0) AS target,
                     COUNT(DISTINCT en.id) AS recorded
                FROM industrial_estates e
-          LEFT JOIN provinces p   ON p.id = e.province_id
-          LEFT JOIN geographies g ON g.id = p.geography_id
-          LEFT JOIN enterprises en ON en.estate_id = e.id
-              WHERE e.is_active = 1
-           GROUP BY g.name
+          LEFT JOIN industrial_estate_details d ON d.industrial_estate_id = e.industrial_estate_id
+          LEFT JOIN provinces p   ON p.province_id = e.province_id
+          LEFT JOIN geographies g ON g.geography_id = p.geography_id
+          LEFT JOIN enterprises en ON en.industrial_estate_id = e.industrial_estate_id
+           GROUP BY g.geography_name
            ORDER BY recorded DESC'
         );
     }
@@ -379,10 +383,11 @@ final class AdminController extends Controller
     private function topCourses(string $year, int $limit = 10): array
     {
         return Database::all(
-            'SELECT COALESCE(NULLIF(d.course_name, ""), d.course_code, "ไม่ระบุสาขา") AS course,
+            'SELECT COALESCE(vc.course_name, d.course_code, "ไม่ระบุสาขา") AS course,
                     SUM(d.vc_male + d.vc_female + d.hvc_male + d.hvc_female) AS total
                FROM survey_demands d
                JOIN surveys s ON s.id = d.survey_id
+          LEFT JOIN vocational_curriculum vc ON vc.course_code = d.course_code
               WHERE s.survey_year = ?
            GROUP BY course
              HAVING total > 0
@@ -396,13 +401,13 @@ final class AdminController extends Controller
     private function laggards(string $year, int $limit = 10): array
     {
         $rows = Database::all(
-            'SELECT o.id, o.college_name, o.college_code,
+            'SELECT o.pveo_id AS id, COALESCE(c.college_name, CONCAT("สอจ. ", o.college_code)) AS college_name, o.college_code,
                     COALESCE(SUM(a.target_count), 0)   AS target_total,
                     COALESCE(SUM(a.surveyed_count), 0) AS surveyed_total
                FROM provincial_vocational_offices o
-               JOIN pveo_estate_assignments a ON a.pveo_id = o.id AND a.survey_year = ?
-              WHERE o.is_active = 1
-           GROUP BY o.id, o.college_name, o.college_code
+          LEFT JOIN college c ON c.college_code = o.college_code
+               JOIN pveo_estate_assignments a ON a.pveo_id = o.pveo_id AND a.survey_year = ?
+           GROUP BY o.pveo_id, c.college_name, o.college_code
              HAVING target_total > 0
            ORDER BY (SUM(a.surveyed_count) / SUM(a.target_count)) ASC
               LIMIT ' . $limit,

@@ -38,9 +38,11 @@ final class ProgressController extends Controller
         $steps    = $this->stepsFor($year);
 
         $existing = Database::all(
-            'SELECT rp.*, (SELECT COUNT(*) FROM report_files f WHERE f.progress_id = rp.id) AS file_count
+            'SELECT rp.*, rp.stage AS step_no,
+                    (SELECT COUNT(*) FROM report_files f
+                      WHERE f.progress_id = rp.id AND f.deleted_at IS NULL) AS file_count
                FROM report_progress rp
-              WHERE rp.pveo_id = ? AND rp.survey_year = ? AND rp.estate_id <=> ?',
+              WHERE rp.pveo_id = ? AND rp.academic_year = ? AND rp.industrial_estate_id <=> ?',
             [$pveoId, $year, $estateId]
         );
 
@@ -78,11 +80,12 @@ final class ProgressController extends Controller
             'nav'   => 'progress',
             'steps' => $steps,
             'files' => Database::all(
-                'SELECT f.*, rp.step_no
+                'SELECT f.*, f.file_type AS mime_type, f.created_at AS uploaded_at, rp.stage AS step_no
                    FROM report_files f
                    JOIN report_progress rp ON rp.id = f.progress_id
-                  WHERE rp.pveo_id = ? AND rp.survey_year = ? AND rp.estate_id <=> ?
-               ORDER BY f.uploaded_at DESC',
+                  WHERE rp.pveo_id = ? AND rp.academic_year = ? AND rp.industrial_estate_id <=> ?
+                    AND f.deleted_at IS NULL
+               ORDER BY f.created_at DESC',
                 [$pveoId, $year, $estateId]
             ),
         ]);
@@ -100,6 +103,13 @@ final class ProgressController extends Controller
 
         if (!isset($steps[$stepNo])) {
             Session::flash('err', 'ขั้นตอนที่เลือกไม่ถูกต้อง');
+            Url::redirect('pveo/progress');
+        }
+
+        // report_progress.industrial_estate_id เป็น NOT NULL ในฐานข้อมูลจริง
+        // ถ้ายังไม่ได้เลือกนิคมฯ ที่ทำงาน จะบันทึกไม่ได้ — บอกผู้ใช้ตรง ๆ
+        if ($estateId === null) {
+            Session::flash('err', 'กรุณาเลือกนิคมฯ ที่ทำงานบนแถบด้านบนก่อนอัปโหลดเอกสาร');
             Url::redirect('pveo/progress');
         }
         if (!isset($_FILES['document']) || ($_FILES['document']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
@@ -126,15 +136,15 @@ final class ProgressController extends Controller
 
         // หาหรือสร้างแถวขั้นตอนของปี/นิคมฯ นี้
         Database::run(
-            'INSERT INTO report_progress (pveo_id, estate_id, survey_year, step_no, step_name, status, due_date)
-             VALUES (?,?,?,?,?, "partial", ?)
-             ON DUPLICATE KEY UPDATE step_name = VALUES(step_name)',
-            [$pveoId, $estateId, $year, $stepNo, $steps[$stepNo]['step_name'], $steps[$stepNo]['due_date']]
+            'INSERT INTO report_progress (pveo_id, industrial_estate_id, academic_year, stage, status)
+             VALUES (?,?,?,?,"draft")
+             ON DUPLICATE KEY UPDATE updated_at = NOW()',
+            [$pveoId, $estateId, $year, $stepNo]
         );
 
         $progress = Database::first(
             'SELECT * FROM report_progress
-              WHERE pveo_id = ? AND survey_year = ? AND step_no = ? AND estate_id <=> ?',
+              WHERE pveo_id = ? AND academic_year = ? AND stage = ? AND industrial_estate_id <=> ?',
             [$pveoId, $year, $stepNo, $estateId]
         );
         $progressId = (int) $progress['id'];
@@ -148,22 +158,28 @@ final class ProgressController extends Controller
         }
 
         Database::run(
-            'INSERT INTO report_files (progress_id, original_name, stored_name, mime_type, file_size, uploaded_by)
-             VALUES (?,?,?,?,?,?)',
-            [$progressId, $file['name'], $stored, $mime, (int) $file['size'], $pveoId]
+            'INSERT INTO report_files (progress_id, file_type, original_name, stored_name, file_size,
+                                       uploaded_by_name, uploaded_by_code)
+             VALUES (?,?,?,?,?,?,?)',
+            [$progressId, $mime, $file['name'], $stored, (int) $file['size'],
+             Auth::name(), (string) (Auth::user()['username'] ?? '')]
         );
 
-        $count = Database::int('SELECT COUNT(*) FROM report_files WHERE progress_id = ?', [$progressId]);
-        $status = $count >= (int) $steps[$stepNo]['min_files'] ? 'complete' : 'partial';
+        $count = Database::int('SELECT COUNT(*) FROM report_files WHERE progress_id = ? AND deleted_at IS NULL', [$progressId]);
+        // production ใช้ enum('draft','submitted','done') ไม่ใช่ partial/complete
+        $status = $count >= (int) $steps[$stepNo]['min_files'] ? 'done' : 'draft';
         Database::run(
-            'UPDATE report_progress SET status = ?, submitted_at = IF(? = "complete", NOW(), submitted_at) WHERE id = ?',
+            'UPDATE report_progress SET status = ?, submitted_at = IF(? = "done", NOW(), submitted_at),
+                    updated_at = NOW() WHERE id = ?',
             [$status, $status, $progressId]
         );
 
         Database::run(
-            'INSERT INTO report_activity_log (progress_id, actor_role, actor_id, action, detail)
-             VALUES (?,?,?,?,?)',
-            [$progressId, Auth::role(), $pveoId, 'upload', $file['name']]
+            'INSERT INTO report_activity_log
+                (pveo_id, industrial_estate_id, academic_year, stage, action, description, actor_name, actor_code)
+             VALUES (?,?,?,?,?,?,?,?)',
+            [$pveoId, (int) $estateId, $year, $stepNo, 'upload', $file['name'],
+             Auth::name(), (string) (Auth::user()['username'] ?? '')]
         );
 
         Session::flash('ok', 'อัปโหลด "' . $file['name'] . '" เรียบร้อยแล้ว');

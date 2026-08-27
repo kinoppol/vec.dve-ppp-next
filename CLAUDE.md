@@ -113,10 +113,20 @@ Four edits, in this order, or the page will 404, be publicly reachable, or rende
 SHA-256 checksum. A `-- @DOWN` line splits the file into up/rollback sections; everything below
 it is the rollback. The `Migrator` honours `DELIMITER` blocks, so routines and triggers work.
 
-Current set: `0001` reference tables → `0002` core domain → `0003` auth hardening + app tables →
-`0004` two views (`v_estate_progress`, `v_pveo_progress`), two procedures
-(`SyncPveoEstateAssignments`, `RecalcEnterpriseCompleteness`), three triggers on `surveys` /
-`enterprise_completeness` → `0005` seed reference data.
+Current set:
+
+| | |
+|---|---|
+| `0001` | ตารางอ้างอิง — DDL จริงของ production ตรงตัว |
+| `0002` | ตารางหลัก — DDL จริงของ production ตรงตัว |
+| `0003` | คอลัมน์รหัสผ่าน + ตารางของแอปใหม่ (`app_settings`, `report_steps`, `share_links`, `ppp_enterprise_completeness`) |
+| `0004` | view `v_ppp_*` และ procedure `Ppp*` — **ไม่มี trigger** |
+| `0005` | ข้อมูลตั้งต้น เติมเฉพาะตอนตารางว่าง |
+| `0006` | คอลัมน์ที่ production ไม่มี: `surveys.status` / `current_step` / `certifier_date`, `pveo_estate_assignments.is_manual` |
+
+0001 and 0002 were generated from `ppp_db.sql` rather than hand-written, with `PRIMARY KEY` and
+indexes folded **into** each `CREATE TABLE` — a separate `ALTER TABLE ADD PRIMARY KEY` fails the
+moment the table already exists, which is the normal case here.
 
 Four states appear in the admin UI at `admin/migrations`: `applied`, `pending`,
 `drifted` (file edited after it ran — resync accepts the new checksum), and `missing` (row with
@@ -136,11 +146,15 @@ legacy system owns. `Requirements::legacyData()` detects an existing legacy data
 
 Rules that keep the two systems from fighting:
 
-- **Everything this app creates carries a `ppp_` / `v_ppp_` / `Ppp` prefix.** The legacy system
-  already owns `v_estate_progress`, `SyncPveoEstateAssignments`, `RecalcEnterpriseCompleteness`
-  and `enterprise_completeness`; 0004 creates its own `v_ppp_estate_progress`,
-  `PppSyncPveoEstateAssignments`, `PppRecalcEnterpriseCompleteness` and writes scores to
-  `ppp_enterprise_completeness` instead. Never add a `DROP ... IF EXISTS` for an unprefixed name.
+- **Everything this app creates carries a `ppp_` / `v_ppp_` / `Ppp` prefix.** Production owns
+  `SyncPveoEstateAssignments` and `SyncReportCompletenessPveo` (procedures),
+  `report_completeness_by_pveo` and `view_address` (views), and `enterprise_completeness`
+  (table). 0004 creates its own `v_ppp_estate_progress`, `v_ppp_pveo_progress`,
+  `PppSyncPveoEstateAssignments`, `PppRecountSurveyed`, `PppRecalcEnterpriseCompleteness`, and
+  writes scores to `ppp_enterprise_completeness`. Never add a `DROP ... IF EXISTS` for an
+  unprefixed name. Note production's `SyncPveoEstateAssignments` takes an `INT` year, and its
+  completeness table uses `completeness_score` plus six sub-scores — a different formula from
+  ours, which is exactly why the two must not share a table.
 - **This app creates no triggers.** Production already has `after_survey_insert`,
   `after_survey_delete` and `after_enterprise_completeness_update`. Replacing them destroys
   legacy behaviour, and adding same-event triggers under new names double-counts, because
@@ -161,14 +175,44 @@ Rules that keep the two systems from fighting:
   defaulted columns with `ADD COLUMN IF NOT EXISTS` and leaves `college_password` in place, so
   legacy logins and legacy `INSERT`s that name their columns keep working.
 
-Verified against a simulated legacy database carrying its own views, routines and triggers: the
-full migration set changes nothing except adding those columns and the app's own objects.
+Verified against a database built from the real `ppp_db` DDL and carrying production's own
+routines and triggers: the full migration set leaves every legacy object byte-identical, adds
+only the columns above, and `PppRecountSurveyed` returns 1 (not 2) when the legacy
+`after_survey_insert` trigger has already incremented the counter.
 
 ## Database constraints
 
-The production schema is **frozen** — migration 0003 only *adds* columns
-(`password_hash`, `must_change_password`, `last_login_at`) and never alters or drops existing
-ones, so the legacy system can still read the same tables.
+The production schema is **frozen**. `migrations/0001` and `0002` are a verbatim copy of the real
+`ppp_db` DDL — do not "tidy" the column names. `0003` and `0006` only *add* columns.
+
+**The column names are not what the brief says.** The app was first written against the schema
+*proposed* in `REDESIGNBRIEF.md` §8, which does not match production. The real names:
+
+| ตาราง | PK | ชื่อที่ต้องใช้จริง |
+|---|---|---|
+| `provinces` | `province_id` | `province_name_th` / `province_name_en` |
+| `geographies` | `geography_id` | `geography_name` |
+| `provincial_vocational_offices` | `pveo_id` | **ไม่มี** `college_name` — join `college` ด้วย `college_code` |
+| `admins` | `admin_id` | `admin_name` (ไม่มี `email` / `is_active`) |
+| `industrial_estates` | `industrial_estate_id` | `industrial_estate_name`; จำนวนสถานประกอบการอยู่ที่ `industrial_estate_details.total_enterprises` |
+| `pveo_estate_assignments` | `assignment_id` | `industrial_estate_id`, `survey_year` เป็น `int(4)` |
+| `enterprises` | `id` | `name`, `contact_person`, `address_no`, `industrial_estate_id` |
+| `surveys` | `id` | `operation_date` (ไม่ใช่ `survey_date`), `recorder_college_code` |
+| `report_progress` | `id` | `academic_year`, `stage`, `status` enum('draft','submitted','done') |
+| `report_files` | `id` | `file_type`, `uploaded_by_name` / `uploaded_by_code` |
+
+`is_active` exists **only** on `industrial_estate_responsibility` — never filter the other tables
+by it. Enum columns that trip people up: `survey_demands.disability_flag` is `enum('yes','no')`
+(not 0/1), `survey_past_trainings.education_level` is `enum('vc','hvc')`, and
+`surveys.teacher_training_status` is `enum('yes','no')`.
+
+**SQL speaks the real schema; PHP and the templates keep the app's own vocabulary.** Every query
+aliases back (`e.name AS enterprise_name`, `o.pveo_id AS id`), so adding a screen means writing
+real column names in the SQL and aliasing — not renaming keys across the views.
+
+`surveys` has four `NOT NULL` columns with no default — `recorder_college_code`,
+`target_college_code`, `province_id_report`, `operation_date`. `SurveyController::findOrCreateDraft()`
+fills all four, or the draft `INSERT` fails outright under `STRICT_TRANS_TABLES`.
 
 Things that will bite you:
 
