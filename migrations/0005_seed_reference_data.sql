@@ -8,7 +8,7 @@
 --
 -- ใช้ INSERT IGNORE ซ้อนอีกชั้นกันกรณีมีแถวบางส่วนอยู่ก่อน
 
-INSERT IGNORE INTO `geographies` (`id`, `name`)
+INSERT IGNORE INTO `geographies` (`geography_id`, `geography_name`)
 SELECT s.id, s.name FROM (
             SELECT 1 AS id, 'ภาคเหนือ' AS name
   UNION ALL SELECT 2, 'ภาคตะวันออกเฉียงเหนือ'
@@ -19,7 +19,7 @@ SELECT s.id, s.name FROM (
 ) s
 JOIN (SELECT COUNT(*) AS n FROM `geographies`) g ON g.n = 0;
 
-INSERT IGNORE INTO `vec_region` (`id`, `region_name`)
+INSERT IGNORE INTO `vec_region` (`vec_region_id`, `region_name`)
 SELECT s.id, s.region_name FROM (
             SELECT 1 AS id, 'ภาคเหนือ' AS region_name
   UNION ALL SELECT 2, 'ภาคตะวันออกเฉียงเหนือ'
@@ -29,7 +29,7 @@ SELECT s.id, s.region_name FROM (
 ) s
 JOIN (SELECT COUNT(*) AS n FROM `vec_region`) g ON g.n = 0;
 
-INSERT IGNORE INTO `college_types` (`id`, `type_name`)
+INSERT IGNORE INTO `college_types` (`type_id`, `type_name`)
 SELECT s.id, s.type_name FROM (
             SELECT 1 AS id, 'วิทยาลัยเทคนิค' AS type_name
   UNION ALL SELECT 2, 'วิทยาลัยอาชีวศึกษา'

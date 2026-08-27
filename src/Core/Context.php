@@ -79,12 +79,14 @@ final class Context
             return [];
         }
         return Database::all(
-            'SELECT e.id, e.estate_name, p.province_name
+            'SELECT e.industrial_estate_id AS id,
+                    e.industrial_estate_name AS estate_name,
+                    COALESCE(p.province_name_th, "ไม่ระบุจังหวัด") AS province_name
                FROM industrial_estate_responsibility r
-               JOIN industrial_estates e ON e.id = r.estate_id
-          LEFT JOIN provinces p ON p.id = e.province_id
+               JOIN industrial_estates e ON e.industrial_estate_id = r.industrial_estate_id
+          LEFT JOIN provinces p ON p.province_id = e.province_id
               WHERE r.pveo_id = ? AND r.is_active = 1
-           ORDER BY e.estate_name',
+           ORDER BY e.industrial_estate_name',
             [Auth::id()]
         );
     }

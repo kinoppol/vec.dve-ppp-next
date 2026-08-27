@@ -58,7 +58,7 @@ final class SurveyController extends Controller
                 [$survey['id']]
             ),
             'notes'      => Database::all(
-                'SELECT * FROM survey_meeting_notes WHERE survey_id = ? ORDER BY note_order, id',
+                'SELECT * FROM survey_meeting_notes WHERE survey_id = ? ORDER BY seq_order, id',
                 [$survey['id']]
             ),
             'trainings'  => Database::all(
@@ -66,9 +66,9 @@ final class SurveyController extends Controller
                 [$survey['id']]
             ),
             'courses'    => Database::all(
-                'SELECT course_code, course_name, course_type, level
-                   FROM vocational_curriculum WHERE is_active = 1
-               ORDER BY course_type, course_name'
+                'SELECT course_code, course_name, subject_type AS course_type, education_level AS level
+                   FROM vocational_curriculum
+               ORDER BY subject_type, course_name'
             ),
         ]);
     }
@@ -156,9 +156,9 @@ final class SurveyController extends Controller
     private function saveVisit(int $surveyId): void
     {
         Database::run(
-            'UPDATE surveys SET survey_date = ?, no_student_required = ?, updated_at = NOW() WHERE id = ?',
+            'UPDATE surveys SET operation_date = ?, no_student_required = ?, updated_at = NOW() WHERE id = ?',
             [
-                $this->input('survey_date') ?: null,
+                $this->input('operation_date') ?: null,
                 isset($_POST['no_student_required']) ? 1 : 0,
                 $surveyId,
             ]
@@ -169,21 +169,23 @@ final class SurveyController extends Controller
     {
         Database::run('DELETE FROM survey_past_trainings WHERE survey_id = ?', [$surveyId]);
 
+        // production เก็บเป็น สาขา × ระดับ × ระบบ พร้อมจำนวน — ไม่มีชื่อสถานศึกษา
+        // และไม่มีปีการศึกษาในตารางนี้ (ผูกกับปีของแบบสำรวจอยู่แล้ว)
         foreach ((array) ($_POST['training'] ?? []) as $t) {
-            $college = trim((string) ($t['college_name'] ?? ''));
-            if ($college === '') {
+            $course = trim((string) ($t['course_code'] ?? ''));
+            $amount = max(0, (int) ($t['amount'] ?? 0));
+            if ($course === '' || $amount === 0) {
                 continue;
             }
             Database::run(
-                'INSERT INTO survey_past_trainings (survey_id, academic_year, college_name, course_name, student_count, system_type)
-                 VALUES (?,?,?,?,?,?)',
+                'INSERT INTO survey_past_trainings (survey_id, system_type, education_level, course_code, amount)
+                 VALUES (?,?,?,?,?)',
                 [
                     $surveyId,
-                    ($t['academic_year'] ?? '') ?: null,
-                    $college,
-                    ($t['course_name'] ?? '') ?: null,
-                    max(0, (int) ($t['student_count'] ?? 0)),
-                    in_array($t['system_type'] ?? '', ['internship', 'dve'], true) ? $t['system_type'] : null,
+                    in_array($t['system_type'] ?? '', ['internship', 'dve'], true) ? $t['system_type'] : 'internship',
+                    in_array($t['education_level'] ?? '', ['vc', 'hvc'], true) ? $t['education_level'] : 'vc',
+                    $course,
+                    $amount,
                 ]
             );
         }
@@ -194,42 +196,44 @@ final class SurveyController extends Controller
     {
         Database::run('DELETE FROM survey_demands WHERE survey_id = ?', [$surveyId]);
 
+        // production ผูกสาขาด้วย course_code (NOT NULL) ไม่เก็บชื่อสาขาซ้ำ
+        // ชื่อที่แสดงมาจากการ join vocational_curriculum
         foreach ((array) ($_POST['demand'] ?? []) as $d) {
-            $course = trim((string) ($d['course_name'] ?? ''));
+            $course = trim((string) ($d['course_code'] ?? ''));
             $counts = [
                 max(0, (int) ($d['vc_male'] ?? 0)),
                 max(0, (int) ($d['vc_female'] ?? 0)),
                 max(0, (int) ($d['hvc_male'] ?? 0)),
                 max(0, (int) ($d['hvc_female'] ?? 0)),
             ];
-            if ($course === '' && array_sum($counts) === 0) {
+            if ($course === '' || array_sum($counts) === 0) {
                 continue;
             }
 
             Database::run(
                 'INSERT INTO survey_demands
-                    (survey_id, system_type, course_code, course_name, vc_male, vc_female,
+                    (survey_id, system_type, course_code, vc_male, vc_female,
                      hvc_male, hvc_female, disability_flag, job_description, required_skills)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+                 VALUES (?,?,?,?,?,?,?,?,?,?)',
                 [
                     $surveyId,
                     in_array($d['system_type'] ?? '', ['internship', 'dve'], true) ? $d['system_type'] : 'internship',
-                    ($d['course_code'] ?? '') ?: null,
-                    $course ?: null,
+                    $course,
                     $counts[0], $counts[1], $counts[2], $counts[3],
-                    empty($d['disability_flag']) ? 0 : 1,
+                    // production เก็บเป็น enum('yes','no') ไม่ใช่ 0/1
+                    empty($d['disability_flag']) ? 'no' : 'yes',
                     ($d['job_description'] ?? '') ?: null,
                     ($d['required_skills'] ?? '') ?: null,
                 ]
             );
 
             $demandId = (int) Database::pdo()->lastInsertId();
-            foreach ((array) ($d['disability_type'] ?? []) as $type => $qty) {
-                $qty = (int) $qty;
-                if ($qty > 0) {
+            // ตารางของ production เก็บแค่ "ประเภทความพิการ" ไม่มีคอลัมน์จำนวน
+            foreach ((array) ($d['disability_type'] ?? []) as $type => $checked) {
+                if (!empty($checked)) {
                     Database::run(
-                        'INSERT INTO survey_demand_disabilities (demand_id, disability_type, quantity) VALUES (?,?,?)',
-                        [$demandId, (string) $type, $qty]
+                        'INSERT INTO survey_demand_disabilities (survey_demand_id, disability_type) VALUES (?,?)',
+                        [$demandId, (string) $type]
                     );
                 }
             }
@@ -239,24 +243,38 @@ final class SurveyController extends Controller
     private function saveTeacherTraining(int $surveyId): void
     {
         Database::run(
-            'UPDATE surveys SET teacher_training_status = ?, updated_at = NOW() WHERE id = ?',
-            [$this->input('teacher_training_status') ?: null, $surveyId]
+            'UPDATE surveys SET teacher_training_status = ?, teacher_training_text = ?, updated_at = NOW()
+              WHERE id = ?',
+            [
+                $this->input('teacher_training_status') === 'yes' ? 'yes' : 'no',
+                $this->input('teacher_training_text') ?: null,
+                $surveyId,
+            ]
         );
     }
 
     private function saveWelfare(int $surveyId): void
     {
+        // สวัสดิการตามที่ production เก็บจริง: ทุนการศึกษา / เบี้ยเลี้ยง / ประกัน
+        // อุบัติเหตุ / ชุดยูนิฟอร์ม / ที่พัก / อื่น ๆ — สองรายการแรกมีช่องจำนวนด้วย
         Database::run(
-            'UPDATE surveys SET welfare_accommodation = ?, welfare_meal = ?, welfare_transport = ?,
-                    welfare_allowance = ?, welfare_insurance = ?, welfare_other = ?, updated_at = NOW()
+            'UPDATE surveys SET welfare_scholarship = ?, welfare_scholarship_amount = ?,
+                    welfare_allowance = ?, welfare_allowance_amount = ?,
+                    welfare_accident = ?, welfare_uniform = ?,
+                    welfare_accommodation = ?, welfare_accommodation_detail = ?,
+                    welfare_other_flag = ?, welfare_other_text = ?, updated_at = NOW()
               WHERE id = ?',
             [
-                isset($_POST['welfare_accommodation']) ? 1 : 0,
-                isset($_POST['welfare_meal']) ? 1 : 0,
-                isset($_POST['welfare_transport']) ? 1 : 0,
+                isset($_POST['welfare_scholarship']) ? 1 : 0,
+                $this->input('welfare_scholarship_amount') ?: null,
                 isset($_POST['welfare_allowance']) ? 1 : 0,
-                isset($_POST['welfare_insurance']) ? 1 : 0,
-                $this->input('welfare_other') ?: null,
+                $this->input('welfare_allowance_amount') ?: null,
+                isset($_POST['welfare_accident']) ? 1 : 0,
+                isset($_POST['welfare_uniform']) ? 1 : 0,
+                isset($_POST['welfare_accommodation']) ? 1 : 0,
+                $this->input('welfare_accommodation_detail') ?: null,
+                isset($_POST['welfare_other_flag']) ? 1 : 0,
+                $this->input('welfare_other_text') ?: null,
                 $surveyId,
             ]
         );
@@ -266,15 +284,16 @@ final class SurveyController extends Controller
     {
         Database::run('DELETE FROM survey_meeting_notes WHERE survey_id = ?', [$surveyId]);
 
+        // production เก็บข้อสรุปเป็นข้อความล้วนพร้อมลำดับ ไม่มีคอลัมน์หัวข้อแยก
         $order = 0;
         foreach ((array) ($_POST['note'] ?? []) as $n) {
-            $conclusion = trim((string) ($n['conclusion'] ?? ''));
-            if ($conclusion === '') {
+            $text = trim((string) ($n['note_text'] ?? ''));
+            if ($text === '') {
                 continue;
             }
             Database::run(
-                'INSERT INTO survey_meeting_notes (survey_id, topic, conclusion, note_order) VALUES (?,?,?,?)',
-                [$surveyId, ($n['topic'] ?? '') ?: null, $conclusion, ++$order]
+                'INSERT INTO survey_meeting_notes (survey_id, note_text, seq_order) VALUES (?,?,?)',
+                [$surveyId, $text, ++$order]
             );
         }
     }
@@ -297,7 +316,7 @@ final class SurveyController extends Controller
         if ($survey === null) {
             return ['ไม่พบแบบสำรวจ'];
         }
-        if (($survey['survey_date'] ?? null) === null) {
+        if (($survey['operation_date'] ?? null) === null) {
             $problems[] = 'ขั้นตอนที่ 2: กรุณาระบุวันที่ลงพื้นที่';
         }
         if ($this->input('certifier_name') === '') {
@@ -326,10 +345,25 @@ final class SurveyController extends Controller
             return $survey;
         }
 
+        // production กำหนด NOT NULL ไว้หลายคอลัมน์และไม่มี DEFAULT ให้
+        // (recorder_college_code, target_college_code, province_id_report, operation_date)
+        // ร่างจึงต้องใส่ค่าตั้งต้นให้ครบ ไม่งั้น INSERT ล้มทันทีในโหมด STRICT
+        $collegeCode = (string) (Auth::user()['username'] ?? '');
+        $provinceId  = (int) Database::value(
+            'SELECT COALESCE(e.province_id, o.province_id, 0)
+               FROM enterprises e
+          LEFT JOIN provincial_vocational_offices o ON o.pveo_id = ?
+              WHERE e.id = ?',
+            [Auth::id(), $enterpriseId],
+            0
+        );
+
         Database::run(
-            'INSERT INTO surveys (enterprise_id, pveo_id, survey_year, survey_round, status, current_step)
-             VALUES (?,?,?,?,"draft",1)',
-            [$enterpriseId, Auth::id(), $year, $round]
+            'INSERT INTO surveys
+                (enterprise_id, pveo_id, recorder_college_code, target_college_code,
+                 province_id_report, operation_date, survey_year, survey_round, status, current_step)
+             VALUES (?,?,?,?,?,CURDATE(),?,?,"draft",1)',
+            [$enterpriseId, Auth::id(), $collegeCode, $collegeCode, $provinceId, $year, $round]
         );
 
         return (array) Database::first(

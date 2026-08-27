@@ -17,7 +17,7 @@ final class PublicController extends Controller
         $this->view('pub/home', [
             'title' => 'ภาพรวมความร่วมมือทั้งประเทศ',
             'kpis'  => [
-                ['icon' => '🏭', 'label' => 'นิคมอุตสาหกรรม',        'value' => num(Database::int('SELECT COUNT(*) FROM industrial_estates WHERE is_active = 1'))],
+                ['icon' => '🏭', 'label' => 'นิคมอุตสาหกรรม',        'value' => num(Database::int('SELECT COUNT(*) FROM industrial_estates'))],
                 ['icon' => '🏢', 'label' => 'สถานประกอบการในระบบ',  'value' => num(Database::int('SELECT COUNT(*) FROM enterprises'))],
                 ['icon' => '👷', 'label' => 'ความต้องการกำลังคนรวม', 'value' => num($this->demandTotal($year))],
                 ['icon' => '♿', 'label' => 'แห่งที่รับผู้พิการ',      'value' => num($this->disabilityFriendly($year))],
@@ -46,7 +46,7 @@ final class PublicController extends Controller
         $params = [];
 
         if ($q !== '') {
-            $where[]  = '(e.enterprise_name LIKE ? OR e.business_type LIKE ?)';
+            $where[]  = '(e.name LIKE ? OR e.business_type LIKE ?)';
             $params[] = '%' . $q . '%';
             $params[] = '%' . $q . '%';
         }
@@ -55,7 +55,7 @@ final class PublicController extends Controller
             $params[] = $provinceId;
         }
         if ($estateId > 0) {
-            $where[]  = 'e.estate_id = ?';
+            $where[]  = 'e.industrial_estate_id = ?';
             $params[] = $estateId;
         }
 
@@ -65,15 +65,16 @@ final class PublicController extends Controller
         $page     = min($page, $pages);
 
         $rows = Database::all(
-            "SELECT e.id, e.enterprise_name, e.business_type,
-                    est.estate_name, COALESCE(p.province_name, 'ไม่ระบุจังหวัด') AS province_name,
+            "SELECT e.id, e.name AS enterprise_name, e.business_type,
+                    est.industrial_estate_name AS estate_name,
+                    COALESCE(p.province_name_th, 'ไม่ระบุจังหวัด') AS province_name,
                     COALESCE(c.score, 0) AS score
                FROM enterprises e
-          LEFT JOIN industrial_estates est ON est.id = e.estate_id
-          LEFT JOIN provinces p ON p.id = e.province_id
+          LEFT JOIN industrial_estates est ON est.industrial_estate_id = e.industrial_estate_id
+          LEFT JOIN provinces p ON p.province_id = e.province_id
           LEFT JOIN ppp_enterprise_completeness c ON c.enterprise_id = e.id
               WHERE {$whereSql}
-           ORDER BY e.enterprise_name
+           ORDER BY e.name
               LIMIT {$perPage} OFFSET " . (($page - 1) * $perPage),
             $params
         );
@@ -87,8 +88,8 @@ final class PublicController extends Controller
             'q'         => $q,
             'provinceId' => $provinceId,
             'estateId'  => $estateId,
-            'provinces' => Database::all('SELECT id, province_name FROM provinces ORDER BY province_name'),
-            'estates'   => Database::all('SELECT id, estate_name FROM industrial_estates WHERE is_active = 1 ORDER BY estate_name'),
+            'provinces' => Database::all('SELECT province_id AS id, province_name_th AS province_name FROM provinces ORDER BY province_name_th'),
+            'estates'   => Database::all('SELECT industrial_estate_id AS id, industrial_estate_name AS estate_name FROM industrial_estates ORDER BY industrial_estate_name'),
         ], 'public');
     }
 

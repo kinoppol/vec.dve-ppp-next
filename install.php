@@ -194,17 +194,17 @@ if ($post && $step === 'admin') {
     if ($errors === []) {
         try {
             Database::connect();
-            $exists = Database::first('SELECT id FROM admins WHERE username = ?', [$username]);
+            $exists = Database::first('SELECT admin_id AS id FROM admins WHERE username = ?', [$username]);
             if ($exists !== null) {
                 Database::run(
-                    'UPDATE admins SET password = ?, full_name = ?, email = ?, is_active = 1 WHERE id = ?',
-                    [password_hash($password, PASSWORD_DEFAULT), $fullName ?: null, $email ?: null, $exists['id']]
+                    'UPDATE admins SET password = ?, admin_name = ? WHERE admin_id = ?',
+                    [password_hash($password, PASSWORD_DEFAULT), $fullName ?: $username, $exists['id']]
                 );
                 $notices[] = 'มีผู้ใช้ชื่อนี้อยู่แล้ว — อัปเดตรหัสผ่านและข้อมูลให้เรียบร้อย';
             } else {
                 Database::run(
-                    'INSERT INTO admins (username, password, full_name, email, is_active) VALUES (?,?,?,?,1)',
-                    [$username, password_hash($password, PASSWORD_DEFAULT), $fullName ?: null, $email ?: null]
+                    'INSERT INTO admins (username, password, admin_name) VALUES (?,?,?)',
+                    [$username, password_hash($password, PASSWORD_DEFAULT), $fullName ?: $username]
                 );
             }
 

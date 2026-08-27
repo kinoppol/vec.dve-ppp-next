@@ -1,89 +1,107 @@
--- 0001 — ตารางข้อมูลอ้างอิง (พื้นที่ / ภาค / หลักสูตร / สถานศึกษา)
--- โครงสร้างอ้างอิงจาก REDESIGNBRIEF.md §8 — ห้ามแก้ชื่อคอลัมน์ที่ระบบเดิมใช้อยู่
+-- 0001 — ตารางอ้างอิง (ภูมิศาสตร์ / จังหวัด / สถานศึกษา / หลักสูตร)
+--
+-- โครงสร้างคัดลอกจากฐานข้อมูล production (ppp_db) ตรงตัว ไม่ดัดแปลงชื่อคอลัมน์
+-- เพราะระบบเดิมใช้ตารางชุดเดียวกันนี้อยู่ ชื่อที่เห็นแปลก ๆ เช่น province_id
+-- เป็น PK แทน id หรือ province_name_th แทน province_name คือของจริงทั้งหมด
+--
+-- ทุกคำสั่งเป็น CREATE TABLE IF NOT EXISTS ติดตั้งลงฐานข้อมูลเดิมได้โดยไม่แตะของเดิม
+-- PRIMARY KEY / INDEX ถูกรวมไว้ใน CREATE TABLE แล้ว ไม่แยกเป็น ALTER TABLE
+-- เพราะ ALTER TABLE ADD PRIMARY KEY จะ error ทันทีถ้าตารางมีอยู่ก่อน
 
 CREATE TABLE IF NOT EXISTS `geographies` (
-  `id`   INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(100) NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `geography_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'รหัสภูมิภาค',
+  `geography_name` varchar(255) NOT NULL COMMENT 'ชื่อภูมิภาค',
+  PRIMARY KEY (`geography_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_thai_520_w2 COMMENT='ภูมิภาค';
 
 CREATE TABLE IF NOT EXISTS `vec_region` (
-  `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `region_name` VARCHAR(100) NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `vec_region_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'รหัสภาค',
+  `region_name` varchar(200) DEFAULT NULL COMMENT 'ชื่อภาค',
+  PRIMARY KEY (`vec_region_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_thai_520_w2 COMMENT='ภาค สอศ.';
 
 CREATE TABLE IF NOT EXISTS `provinces` (
-  `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `province_name` VARCHAR(150) NOT NULL,
-  `geography_id`  INT UNSIGNED NULL,
-  `vec_region_id` INT UNSIGNED NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_provinces_geography` (`geography_id`),
-  KEY `idx_provinces_region` (`vec_region_id`),
-  CONSTRAINT `fk_provinces_geography` FOREIGN KEY (`geography_id`) REFERENCES `geographies` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_provinces_region` FOREIGN KEY (`vec_region_id`) REFERENCES `vec_region` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `province_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'รหัสจังหวัด',
+  `province_name_th` varchar(150) NOT NULL COMMENT 'ชื่อจังหวัด (ไทย)',
+  `province_name_en` varchar(150) NOT NULL COMMENT 'ชื่อจังหวัด (อังกฤษ)',
+  `geography_id` int(11) NOT NULL COMMENT 'ภูมิภาค (FK)',
+  `created_at` datetime DEFAULT NULL COMMENT 'วันที่สร้าง',
+  `updated_at` datetime DEFAULT NULL COMMENT 'วันที่แก้ไข',
+  `deleted_at` datetime DEFAULT NULL COMMENT 'วันที่ลบ',
+  PRIMARY KEY (`province_id`),
+  KEY `geography_id` (`geography_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_thai_520_w2 COMMENT='จังหวัด';
 
 CREATE TABLE IF NOT EXISTS `districts` (
-  `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `district_name` VARCHAR(150) NOT NULL,
-  `province_id`   INT UNSIGNED NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_districts_province` (`province_id`),
-  CONSTRAINT `fk_districts_province` FOREIGN KEY (`province_id`) REFERENCES `provinces` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `district_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'รหัสอำเภอ',
+  `district_name_th` varchar(150) NOT NULL COMMENT 'ชื่ออำเภอ (ไทย)',
+  `district_name_en` varchar(150) NOT NULL COMMENT 'ชื่ออำเภอ (อังกฤษ)',
+  `province_id` int(11) NOT NULL COMMENT 'รหัสจังหวัด (FK)',
+  `created_at` datetime DEFAULT NULL COMMENT 'วันที่สร้าง',
+  `updated_at` datetime DEFAULT NULL COMMENT 'วันที่แก้ไข',
+  `deleted_at` datetime DEFAULT NULL COMMENT 'วันที่ลบ (Soft Delete)',
+  PRIMARY KEY (`district_id`),
+  KEY `province_id` (`province_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_thai_520_w2 COMMENT='อำเภอ';
 
 CREATE TABLE IF NOT EXISTS `sub_districts` (
-  `id`                INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `sub_district_name` VARCHAR(150) NOT NULL,
-  `district_id`       INT UNSIGNED NOT NULL,
-  `zip_code`          VARCHAR(10) NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_subdistricts_district` (`district_id`),
-  CONSTRAINT `fk_subdistricts_district` FOREIGN KEY (`district_id`) REFERENCES `districts` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `subdistrict_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'รหัสตำบล',
+  `zip_code` int(11) NOT NULL COMMENT 'รหัสไปรษณีย์',
+  `subdistrict_name_th` varchar(150) NOT NULL COMMENT 'ชื่อตำบล (ไทย)',
+  `subdistrict_name_en` varchar(150) NOT NULL COMMENT 'ชื่อตำบล (อังกฤษ)',
+  `district_id` int(11) NOT NULL COMMENT 'อำเภอ (FK)',
+  `lat` double DEFAULT NULL COMMENT 'ละติจูด',
+  `long` double DEFAULT NULL COMMENT 'ลองจิจูด',
+  `created_at` datetime DEFAULT NULL COMMENT 'วันที่สร้าง',
+  `updated_at` datetime DEFAULT NULL COMMENT 'วันที่แก้ไข',
+  `deleted_at` datetime DEFAULT NULL COMMENT 'วันที่ลบ',
+  PRIMARY KEY (`subdistrict_id`),
+  KEY `district_id` (`district_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_thai_520_w2 COMMENT='ตำบล';
 
 CREATE TABLE IF NOT EXISTS `college_types` (
-  `id`        INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `type_name` VARCHAR(150) NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `type_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'รหัสลำดับประเภท',
+  `type_name` varchar(255) NOT NULL COMMENT 'ชื่อประเภทสถานศึกษา',
+  PRIMARY KEY (`type_id`),
+  UNIQUE KEY `type_name` (`type_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_thai_520_w2 COMMENT='ประเภทสถานศึกษา';
 
 CREATE TABLE IF NOT EXISTS `college` (
-  `id`              INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `college_code`    VARCHAR(20)  NOT NULL,
-  `college_name`    VARCHAR(255) NOT NULL,
-  `college_type_id` INT UNSIGNED NULL,
-  `province_id`     INT UNSIGNED NULL,
-  `address`         VARCHAR(255) NULL,
-  `phone`           VARCHAR(50)  NULL,
-  `email`           VARCHAR(150) NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_college_code` (`college_code`),
-  KEY `idx_college_province` (`province_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `id` int(11) NOT NULL COMMENT 'ลำดับ',
+  `college_code` varchar(20) NOT NULL COMMENT 'รหัสสถานศึกษา',
+  `college_name` varchar(255) NOT NULL COMMENT 'ชื่อสถานศึกษา',
+  `province_vocational` varchar(100) DEFAULT NULL COMMENT 'อาชีวศึกษาจังหวัด',
+  `region` varchar(100) DEFAULT NULL COMMENT 'ภาค',
+  `college_type` varchar(100) DEFAULT NULL COMMENT 'ประเภทสถานศึกษา',
+  `address_no` varchar(50) DEFAULT NULL COMMENT 'เลขที่',
+  `moo` varchar(20) DEFAULT NULL COMMENT 'หมู่',
+  `soi` varchar(100) DEFAULT NULL COMMENT 'ซอย',
+  `road` varchar(100) DEFAULT NULL COMMENT 'ถนน',
+  `sub_district` varchar(100) DEFAULT NULL COMMENT 'ตำบล',
+  `district` varchar(100) DEFAULT NULL COMMENT 'อำเภอ',
+  `province` varchar(100) DEFAULT NULL COMMENT 'จังหวัด',
+  `postcode` varchar(5) DEFAULT NULL COMMENT 'รหัสไปรษณีย์',
+  `phone` varchar(50) DEFAULT NULL COMMENT 'โทรศัพท์',
+  `latitude` decimal(10,8) DEFAULT NULL COMMENT 'พิกัดละติจูด',
+  `longitude` decimal(11,8) DEFAULT NULL COMMENT 'พิกัดลองจิจูด',
+  `website` varchar(255) DEFAULT NULL COMMENT 'เว็บไซต์',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_thai_520_w2 COMMENT='ข้อมูลสถานศึกษา';
 
--- 171 สาขา (ปวช. 67 / ปวส. 105) — level: vc = ปวช., hvc = ปวส.
 CREATE TABLE IF NOT EXISTS `vocational_curriculum` (
-  `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `course_code` VARCHAR(20)  NOT NULL,
-  `course_name` VARCHAR(255) NOT NULL,
-  `course_type` VARCHAR(150) NULL,
-  `level`       ENUM('vc','hvc') NOT NULL DEFAULT 'vc',
-  `is_active`   TINYINT(1) NOT NULL DEFAULT 1,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_curriculum_code_level` (`course_code`, `level`),
-  KEY `idx_curriculum_type` (`course_type`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `course_code` varchar(20) NOT NULL COMMENT 'รหัสสาขาวิชา',
+  `course_name` varchar(255) NOT NULL COMMENT 'ชื่อสาขาวิชา',
+  `career_group` varchar(255) NOT NULL COMMENT 'กลุ่มอาชีพ',
+  `subject_type` varchar(255) NOT NULL COMMENT 'ประเภทวิชา',
+  `education_level` varchar(50) DEFAULT 'ปวช.' COMMENT 'ระดับการศึกษา',
+  `curriculum_year` varchar(50) DEFAULT 'ปวช.67' COMMENT 'ปีหลักสูตร',
+  PRIMARY KEY (`course_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_thai_520_w2 COMMENT='หลักสูตร/สาขาวิชา';
 
 -- @DOWN
 -- ไม่มีส่วนย้อนกลับโดยเจตนา
 --
--- ตารางอ้างอิงทั้งหมดในไฟล์นี้เป็นของ "ระบบเดิม" ด้วย และอาจมีข้อมูลจริง
--- (77 จังหวัด, อำเภอ/ตำบล, วิทยาลัย, 171 สาขาวิชา) อยู่ก่อนแล้ว
--- ส่วน UP ใช้ CREATE TABLE IF NOT EXISTS จึงไม่เคยเขียนทับของเดิม
+-- ตารางทั้งหมดในไฟล์นี้เป็นของระบบเดิม และมีข้อมูลจริงอยู่ ส่วน UP ใช้
+-- CREATE TABLE IF NOT EXISTS จึงข้ามไปเฉย ๆ เมื่อตารางมีอยู่แล้ว
 -- ถ้าใส่ DROP TABLE ไว้ที่นี่ ปุ่ม "ย้อนกลับ" ในหน้า admin/migrations
--- จะลบข้อมูลของระบบเดิมทิ้งทั้งหมด — ห้ามเพิ่มกลับเข้ามา
---
--- ต้องการรื้อจริง ให้ DBA ทำเองบนฐานข้อมูลที่ตั้งใจ พร้อมสำรองข้อมูลก่อน
+-- จะลบฐานข้อมูลของระบบเดิมทิ้งได้จากหน้าเว็บ — ห้ามเพิ่มกลับเข้ามา

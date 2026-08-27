@@ -54,7 +54,7 @@ $action = url('pveo/survey/' . $enterprise['id']);
       <div class="form-grid form-grid-2">
         <label class="field">
           <span>วันที่ลงพื้นที่</span>
-          <input class="input" type="date" name="survey_date" value="<?= e($survey['survey_date'] ?? '') ?>">
+          <input class="input" type="date" name="operation_date" value="<?= e($survey['operation_date'] ?? '') ?>">
           <span class="hint">แสดงผลเป็น พ.ศ. ในรายงาน</span>
         </label>
         <label class="field field-wide">
@@ -69,17 +69,22 @@ $action = url('pveo/survey/' . $enterprise['id']);
     <?php elseif ($step === 3): ?>
       <p class="hint">ประวัติการรับนักเรียน/นักศึกษาย้อนหลัง (ไม่บังคับ)</p>
       <table class="table">
-        <thead><tr><th>ปีการศึกษา</th><th>สถานศึกษา</th><th>สาขา</th><th class="num">จำนวน</th><th>ระบบ</th></tr></thead>
+        <thead><tr><th>สาขาวิชา</th><th>ระดับ</th><th class="num">จำนวน</th><th>ระบบ</th></tr></thead>
         <tbody>
         <?php for ($i = 0; $i < 3; $i++): $t = $trainings[$i] ?? []; ?>
           <tr>
-            <td><input class="input" type="text" name="training[<?= $i ?>][academic_year]" pattern="25[0-9]{2}" value="<?= e($t['academic_year'] ?? '') ?>"></td>
-            <td><input class="input" type="text" name="training[<?= $i ?>][college_name]" value="<?= e($t['college_name'] ?? '') ?>"></td>
-            <td><input class="input" type="text" name="training[<?= $i ?>][course_name]" value="<?= e($t['course_name'] ?? '') ?>"></td>
-            <td><input class="input" type="number" min="0" name="training[<?= $i ?>][student_count]" value="<?= (int) ($t['student_count'] ?? 0) ?>"></td>
+            <td>
+              <input class="input" list="course-list" name="training[<?= $i ?>][course_code]" value="<?= e($t['course_code'] ?? '') ?>">
+            </td>
+            <td>
+              <select class="input" name="training[<?= $i ?>][education_level]">
+                <option value="vc"  <?= ($t['education_level'] ?? '') === 'vc'  ? 'selected' : '' ?>>ปวช.</option>
+                <option value="hvc" <?= ($t['education_level'] ?? '') === 'hvc' ? 'selected' : '' ?>>ปวส.</option>
+              </select>
+            </td>
+            <td><input class="input" type="number" min="0" name="training[<?= $i ?>][amount]" value="<?= (int) ($t['amount'] ?? 0) ?>"></td>
             <td>
               <select class="input" name="training[<?= $i ?>][system_type]">
-                <option value="">—</option>
                 <option value="internship" <?= ($t['system_type'] ?? '') === 'internship' ? 'selected' : '' ?>>ฝึกงาน</option>
                 <option value="dve"        <?= ($t['system_type'] ?? '') === 'dve'        ? 'selected' : '' ?>>ทวิภาคี</option>
               </select>
@@ -117,21 +122,22 @@ $action = url('pveo/survey/' . $enterprise['id']);
                 </select>
               </td>
               <td>
-                <input class="input" list="course-list" name="demand[<?= $i ?>][course_name]" value="<?= e($d['course_name'] ?? '') ?>">
+                <input class="input" list="course-list" name="demand[<?= $i ?>][course_code]" value="<?= e($d['course_code'] ?? '') ?>">
               </td>
               <td><input class="input" type="number" min="0" name="demand[<?= $i ?>][vc_male]"    value="<?= (int) ($d['vc_male'] ?? 0) ?>"></td>
               <td><input class="input" type="number" min="0" name="demand[<?= $i ?>][vc_female]"  value="<?= (int) ($d['vc_female'] ?? 0) ?>"></td>
               <td><input class="input" type="number" min="0" name="demand[<?= $i ?>][hvc_male]"   value="<?= (int) ($d['hvc_male'] ?? 0) ?>"></td>
               <td><input class="input" type="number" min="0" name="demand[<?= $i ?>][hvc_female]" value="<?= (int) ($d['hvc_female'] ?? 0) ?>"></td>
-              <td><input type="checkbox" name="demand[<?= $i ?>][disability_flag]" value="1" <?= !empty($d['disability_flag']) ? 'checked' : '' ?>></td>
+              <td><input type="checkbox" name="demand[<?= $i ?>][disability_flag]" value="1" <?= ($d['disability_flag'] ?? 'no') === 'yes' ? 'checked' : '' ?>></td>
             </tr>
           <?php endfor; ?>
           </tbody>
         </table>
       </div>
+      <?php /* ค่าที่บันทึกคือ course_code เพราะ survey_demands ผูกด้วยรหัส ไม่ใช่ชื่อ */ ?>
       <datalist id="course-list">
         <?php foreach ($courses as $c): ?>
-          <option value="<?= e($c['course_name']) ?>"><?= e(($c['level'] === 'hvc' ? 'ปวส. ' : 'ปวช. ') . ($c['course_type'] ?? '')) ?></option>
+          <option value="<?= e($c['course_code']) ?>"><?= e($c['course_name']) ?> · <?= e($c['level'] ?? '') ?></option>
         <?php endforeach; ?>
       </datalist>
       <?php if ($courses === []): ?>
@@ -141,7 +147,14 @@ $action = url('pveo/survey/' . $enterprise['id']);
     <?php elseif ($step === 5): ?>
       <label class="field">
         <span>สถานะครูฝึกประสบการณ์ในสถานประกอบการ</span>
-        <textarea class="input" name="teacher_training_status" rows="4"><?= e($survey['teacher_training_status'] ?? '') ?></textarea>
+        <select class="input" name="teacher_training_status">
+          <option value="no"  <?= ($survey['teacher_training_status'] ?? 'no') === 'no'  ? 'selected' : '' ?>>ไม่รับครูเข้าฝึกประสบการณ์</option>
+          <option value="yes" <?= ($survey['teacher_training_status'] ?? '')   === 'yes' ? 'selected' : '' ?>>รับครูเข้าฝึกประสบการณ์</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>รายละเอียดเพิ่มเติม</span>
+        <textarea class="input" name="teacher_training_text" rows="3"><?= e($survey['teacher_training_text'] ?? '') ?></textarea>
       </label>
 
     <?php elseif ($step === 6): ?>
@@ -149,11 +162,12 @@ $action = url('pveo/survey/' . $enterprise['id']);
       <div class="form-grid form-grid-2">
         <?php
         $welfare = [
-            'welfare_accommodation' => 'ที่พัก',
-            'welfare_meal'          => 'อาหาร',
-            'welfare_transport'     => 'ค่าเดินทาง/รถรับส่ง',
+            'welfare_scholarship'   => 'ทุนการศึกษา',
             'welfare_allowance'     => 'เบี้ยเลี้ยง',
-            'welfare_insurance'     => 'ประกันอุบัติเหตุ',
+            'welfare_accident'      => 'ประกันอุบัติเหตุ',
+            'welfare_uniform'       => 'ชุดยูนิฟอร์ม',
+            'welfare_accommodation' => 'ที่พัก',
+            'welfare_other_flag'    => 'สวัสดิการอื่น ๆ',
         ];
         foreach ($welfare as $field => $label): ?>
           <label style="display:flex;align-items:center;gap:8px;font-size:14px">
@@ -161,9 +175,21 @@ $action = url('pveo/survey/' . $enterprise['id']);
             <?= e($label) ?>
           </label>
         <?php endforeach; ?>
-        <label class="field field-wide">
-          <span>สวัสดิการอื่น ๆ</span>
-          <input class="input" type="text" name="welfare_other" value="<?= e($survey['welfare_other'] ?? '') ?>">
+        <label class="field">
+          <span>จำนวนทุนการศึกษา</span>
+          <input class="input" type="text" name="welfare_scholarship_amount" value="<?= e($survey['welfare_scholarship_amount'] ?? '') ?>">
+        </label>
+        <label class="field">
+          <span>จำนวนเบี้ยเลี้ยง</span>
+          <input class="input" type="text" name="welfare_allowance_amount" value="<?= e($survey['welfare_allowance_amount'] ?? '') ?>">
+        </label>
+        <label class="field">
+          <span>รายละเอียดที่พัก</span>
+          <input class="input" type="text" name="welfare_accommodation_detail" value="<?= e($survey['welfare_accommodation_detail'] ?? '') ?>">
+        </label>
+        <label class="field">
+          <span>รายละเอียดสวัสดิการอื่น</span>
+          <input class="input" type="text" name="welfare_other_text" value="<?= e($survey['welfare_other_text'] ?? '') ?>">
         </label>
       </div>
 
@@ -171,13 +197,9 @@ $action = url('pveo/survey/' . $enterprise['id']);
       <p class="hint">ข้อสรุปจากการประชุม/หารือกับสถานประกอบการ</p>
       <?php for ($i = 0; $i < max(3, count($notes) + 1); $i++): $n = $notes[$i] ?? []; ?>
         <div class="form-grid form-grid-2" style="margin-bottom:var(--s-3)">
-          <label class="field">
-            <span>หัวข้อที่ <?= $i + 1 ?></span>
-            <input class="input" type="text" name="note[<?= $i ?>][topic]" value="<?= e($n['topic'] ?? '') ?>">
-          </label>
-          <label class="field">
-            <span>ข้อสรุป</span>
-            <input class="input" type="text" name="note[<?= $i ?>][conclusion]" value="<?= e($n['conclusion'] ?? '') ?>">
+          <label class="field field-wide">
+            <span>ข้อสรุปที่ <?= $i + 1 ?></span>
+            <input class="input" type="text" name="note[<?= $i ?>][note_text]" value="<?= e($n['note_text'] ?? '') ?>">
           </label>
         </div>
       <?php endfor; ?>
@@ -198,7 +220,7 @@ $action = url('pveo/survey/' . $enterprise['id']);
       <p class="hint">ตรวจสอบความถูกต้องก่อนส่ง เมื่อส่งแล้วสถานะจะเปลี่ยนเป็น “ส่งแล้ว”</p>
       <table class="table">
         <tbody>
-          <tr><th style="width:240px">วันที่ลงพื้นที่</th><td><?= e(thai_date($survey['survey_date'])) ?></td></tr>
+          <tr><th style="width:240px">วันที่ลงพื้นที่</th><td><?= e(thai_date($survey['operation_date'])) ?></td></tr>
           <tr><th>ไม่ประสงค์รับนักศึกษา</th><td><?= (int) $survey['no_student_required'] === 1 ? 'ใช่' : 'ไม่ใช่' ?></td></tr>
           <tr><th>รายการความต้องการกำลังคน</th><td><?= num(count($demands)) ?> รายการ</td></tr>
           <tr><th>ข้อสรุปการประชุม</th><td><?= num(count($notes)) ?> ข้อ</td></tr>

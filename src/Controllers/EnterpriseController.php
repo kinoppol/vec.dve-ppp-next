@@ -19,12 +19,13 @@ final class EnterpriseController extends Controller
         $pveoId = (int) Auth::id();
 
         $assignments = Database::all(
-            'SELECT a.*, e.estate_name, COALESCE(p.province_name, "ไม่ระบุจังหวัด") AS province_name
+            'SELECT a.*, e.industrial_estate_name AS estate_name,
+                    COALESCE(p.province_name_th, "ไม่ระบุจังหวัด") AS province_name
                FROM pveo_estate_assignments a
-               JOIN industrial_estates e ON e.id = a.estate_id
-          LEFT JOIN provinces p ON p.id = e.province_id
+               JOIN industrial_estates e ON e.industrial_estate_id = a.industrial_estate_id
+          LEFT JOIN provinces p ON p.province_id = e.province_id
               WHERE a.pveo_id = ? AND a.survey_year = ?
-           ORDER BY e.estate_name',
+           ORDER BY e.industrial_estate_name',
             [$pveoId, $year]
         );
 
@@ -69,11 +70,11 @@ final class EnterpriseController extends Controller
         $perPage = $this->perPage();
         $page    = $this->page();
 
-        $where  = ['e.estate_id <=> ?'];
+        $where  = ['e.industrial_estate_id <=> ?'];
         $params = [$estateId];
 
         if ($q !== '') {
-            $where[]  = '(e.enterprise_name LIKE ? OR e.business_type LIKE ?)';
+            $where[]  = '(e.name LIKE ? OR e.business_type LIKE ?)';
             $params[] = '%' . $q . '%';
             $params[] = '%' . $q . '%';
         }
@@ -92,7 +93,7 @@ final class EnterpriseController extends Controller
         $orderSql = match ($sort) {
             'score'   => 'COALESCE(c.score, 0) DESC',
             'updated' => 'e.updated_at DESC',
-            default   => 'e.enterprise_name',
+            default   => 'e.name',
         };
 
         $total = Database::int("SELECT COUNT(*) FROM enterprises e WHERE {$whereSql}", $params);
@@ -100,7 +101,9 @@ final class EnterpriseController extends Controller
         $page  = min($page, $pages);
 
         $rows = Database::all(
-            "SELECT e.*, COALESCE(c.score, 0) AS score,
+            "SELECT e.*, e.name AS enterprise_name, e.contact_person AS contact_name,
+                    e.industrial_estate_id AS estate_id, e.address_no AS address,
+                    COALESCE(c.score, 0) AS score,
                     (SELECT s.id FROM surveys s
                       WHERE s.enterprise_id = e.id AND s.survey_year = ?
                       ORDER BY s.id DESC LIMIT 1) AS survey_id,
@@ -138,7 +141,7 @@ final class EnterpriseController extends Controller
         $this->view('pveo/enterprise_form', [
             'title'     => 'เพิ่มสถานประกอบการ',
             'nav'       => 'enterprises',
-            'provinces' => Database::all('SELECT id, province_name FROM provinces ORDER BY province_name'),
+            'provinces' => Database::all('SELECT province_id AS id, province_name_th AS province_name FROM provinces ORDER BY province_name_th'),
             'row'       => null,
         ]);
     }
@@ -155,9 +158,9 @@ final class EnterpriseController extends Controller
 
         Database::run(
             'INSERT INTO enterprises
-                (enterprise_name, business_type, estate_id, province_id, address, phone, email,
-                 contact_name, contact_position, contact_phone, created_by_pveo, updated_at)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,NOW())',
+                (name, business_type, industrial_estate_id, province_id, address_no, phone, email,
+                 contact_person, contact_position, contact_phone, created_at, updated_at)
+             VALUES (?,?,?,?,?,?,?,?,?,?,NOW(),NOW())',
             [
                 $name,
                 $this->input('business_type') ?: null,
@@ -169,7 +172,6 @@ final class EnterpriseController extends Controller
                 $this->input('contact_name') ?: null,
                 $this->input('contact_position') ?: null,
                 $this->input('contact_phone') ?: null,
-                Auth::id(),
             ]
         );
 
@@ -186,12 +188,15 @@ final class EnterpriseController extends Controller
         $id = (int) $id;
 
         $row = Database::first(
-            'SELECT e.*, COALESCE(c.score, 0) AS score, c.missing_sections,
-                    est.estate_name, COALESCE(p.province_name, "ไม่ระบุจังหวัด") AS province_name
+            'SELECT e.*, e.name AS enterprise_name, e.contact_person AS contact_name,
+                    e.industrial_estate_id AS estate_id, e.address_no AS address,
+                    COALESCE(c.score, 0) AS score, c.missing_sections,
+                    est.industrial_estate_name AS estate_name,
+                    COALESCE(p.province_name_th, "ไม่ระบุจังหวัด") AS province_name
                FROM enterprises e
           LEFT JOIN ppp_enterprise_completeness c ON c.enterprise_id = e.id
-          LEFT JOIN industrial_estates est ON est.id = e.estate_id
-          LEFT JOIN provinces p ON p.id = e.province_id
+          LEFT JOIN industrial_estates est ON est.industrial_estate_id = e.industrial_estate_id
+          LEFT JOIN provinces p ON p.province_id = e.province_id
               WHERE e.id = ?',
             [$id]
         );

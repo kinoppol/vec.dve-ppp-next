@@ -21,6 +21,21 @@ final class Auth
     public const ROLE_PVEO  = 'pveo';
     public const ROLE_GUEST = 'guest';
 
+    /**
+     * ฐานข้อมูลจริงใช้ pveo_id เป็น PK และไม่มีคอลัมน์ college_name เลย
+     * ชื่อสถานศึกษาอยู่ในตาราง college จึงต้อง join เข้ามา
+     *
+     * alias กลับเป็นชื่อที่โค้ดส่วนที่เหลือใช้อยู่ (id, college_name) เพื่อไม่ต้อง
+     * ไล่แก้ทุก view — เป็นแนวทางเดียวกันทั้งแอป: SQL พูดภาษาโครงสร้างจริง
+     * ส่วน PHP/เทมเพลตยังใช้คำศัพท์เดิม
+     */
+    private const PVEO_SELECT =
+        'SELECT o.pveo_id AS id, o.college_code, o.college_password,
+                o.password_hash, o.must_change_password, o.province_id,
+                COALESCE(c.college_name, CONCAT("สอจ. ", o.college_code)) AS college_name
+           FROM provincial_vocational_offices o
+      LEFT JOIN college c ON c.college_code = o.college_code';
+
     public static function user(): ?array
     {
         return $_SESSION['auth'] ?? null;
@@ -79,7 +94,7 @@ final class Auth
     public static function attemptAdmin(string $username, string $password): array
     {
         $row = Database::first(
-            'SELECT * FROM admins WHERE username = ? LIMIT 1',
+            'SELECT admin_id AS id, username, password, admin_name AS full_name FROM admins WHERE username = ? LIMIT 1',
             [$username]
         );
         if ($row === null) {
@@ -94,7 +109,7 @@ final class Auth
 
         // Upgrade any legacy hash to the current algorithm on successful login.
         if (!self::isBcrypt($stored) || password_needs_rehash($stored, PASSWORD_DEFAULT)) {
-            Database::run('UPDATE admins SET password = ? WHERE id = ?', [
+            Database::run('UPDATE admins SET password = ? WHERE admin_id = ?', [
                 password_hash($password, PASSWORD_DEFAULT),
                 $row['id'],
             ]);
@@ -119,7 +134,7 @@ final class Auth
     public static function attemptPveo(string $collegeCode, string $password): array
     {
         $row = Database::first(
-            'SELECT * FROM provincial_vocational_offices WHERE college_code = ? LIMIT 1',
+            self::PVEO_SELECT . ' WHERE o.college_code = ? LIMIT 1',
             [$collegeCode]
         );
         if ($row === null) {
@@ -172,12 +187,12 @@ final class Auth
         }
 
         if ($user['role'] === self::ROLE_ADMIN) {
-            $stored = (string) Database::value('SELECT password FROM admins WHERE id = ?', [$user['id']], '');
+            $stored = (string) Database::value('SELECT password FROM admins WHERE admin_id = ?', [$user['id']], '');
             return self::verifyAgainst($password, $stored);
         }
 
         $row = Database::first(
-            'SELECT college_password, password_hash FROM provincial_vocational_offices WHERE id = ?',
+            'SELECT college_password, password_hash FROM provincial_vocational_offices WHERE pveo_id = ?',
             [$user['id']]
         );
         if ($row === null) {
@@ -196,7 +211,7 @@ final class Auth
         Database::run(
             'UPDATE provincial_vocational_offices
                 SET password_hash = ?, must_change_password = 0, password_changed_at = NOW()
-              WHERE id = ?',
+              WHERE pveo_id = ?',
             [password_hash($newPassword, PASSWORD_DEFAULT), $officeId]
         );
         if (isset($_SESSION['auth'])) {
@@ -207,7 +222,7 @@ final class Auth
     public static function setAdminPassword(int $adminId, string $newPassword): void
     {
         Database::run(
-            'UPDATE admins SET password = ?, password_changed_at = NOW() WHERE id = ?',
+            'UPDATE admins SET password = ?, password_changed_at = NOW() WHERE admin_id = ?',
             [password_hash($newPassword, PASSWORD_DEFAULT), $adminId]
         );
         if (isset($_SESSION['auth'])) {
@@ -221,7 +236,7 @@ final class Auth
         if (!self::isAdmin()) {
             return ['ok' => false, 'message' => 'เฉพาะผู้ดูแลระบบเท่านั้น'];
         }
-        $row = Database::first('SELECT * FROM provincial_vocational_offices WHERE id = ?', [$officeId]);
+        $row = Database::first(self::PVEO_SELECT . ' WHERE o.pveo_id = ?', [$officeId]);
         if ($row === null) {
             return ['ok' => false, 'message' => 'ไม่พบ สอจ. ที่เลือก'];
         }
@@ -331,6 +346,7 @@ final class Auth
         if (!Database::columnExists($table, 'last_login_at')) {
             return;
         }
-        Database::run('UPDATE `' . $table . '` SET last_login_at = NOW() WHERE id = ?', [$id]);
+        $pk = $table === 'admins' ? 'admin_id' : 'pveo_id';
+        Database::run('UPDATE `' . $table . '` SET last_login_at = NOW() WHERE `' . $pk . '` = ?', [$id]);
     }
 }
