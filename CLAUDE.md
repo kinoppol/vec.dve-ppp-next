@@ -48,20 +48,24 @@ admin password to re-enter. Deleting `storage/installed.lock` is the documented 
 
 ## Deployment
 
-`.github/workflows/main.yml` deploys on **every push to `main`**: it SSHes to the production host
-(`secrets.SERVER_HOST`) and runs `git fetch origin && git reset --hard origin/main` in
-`/var/www/next`. No build, no test gate, no staging branch — a push is meant to be a release, and
-any tracked file edited by hand on the server is discarded.
+**Deployment is manual.** The GitHub Actions workflow that used to SSH into the production host
+was deleted in `7526b64` after every one of its runs failed in the SSH step within ~2 seconds
+(missing `SERVER_HOST` / `SERVER_USER` / `SERVER_SSH_KEY` secrets). There is now no CI at all:
+pushing to `main` publishes the code to GitHub and nothing else. Production at
+`dve-ppp.vec.go.th/next/` is updated by pulling on the server, so **always verify a change
+against the live page rather than assuming a push shipped it**.
 
-**As of 2026-08-27 this pipeline has never succeeded.** Both runs so far (the commit that added
-the workflow, and the next one) fail in the SSH step within ~2 seconds, which is the signature of
-missing `SERVER_HOST` / `SERVER_USER` / `SERVER_SSH_KEY` secrets. Until someone sets them,
-production at `dve-ppp.vec.go.th/next/` is updated by hand and **pushing does not deploy** —
-verify against the live page rather than assuming. Note also that the deploy would only move
-code: migrations still have to be run from `admin/migrations` afterwards. Untracked paths survive the reset, which is what
-keeps `config/config.php`, `storage/installed.lock` and `uploads/reports/` alive (all are in
-`.gitignore`, along with `*.sql` — the real `ppp_db.sql` dump carries personal data and plaintext
-passwords and must never be committed).
+Two things a code deploy does not do:
+
+- **Migrations** still have to be run from `admin/migrations` afterwards. `0007` (the Thai system
+  name, stored in `app_settings`) is the current example — the file lands with the code but the
+  displayed name only changes once the migration runs.
+- **Untracked paths** are what carry local state across a `git reset --hard`: `config/config.php`,
+  `storage/installed.lock` and `uploads/reports/` are all gitignored, along with `*.sql` — the
+  real `ppp_db.sql` dump holds personal data and plaintext passwords and must never be committed.
+
+Browser caching used to hide deploys: `Url::asset()` now appends `?v=<filemtime>`, so a new
+`app.css` is picked up without a hard refresh.
 
 ## Architecture
 
@@ -81,7 +85,10 @@ template's variables from a stack. Never pass `get_defined_vars()` into a view: 
 `View::capture()`'s own locals and nests the data array into itself until memory is exhausted.
 
 **Controllers** extend `Controller`, whose `view()` populates the shell (top bar, sidebar, year,
-active estate) and force-redirects any user still on their initial password to `password/change`.
+active estate) and force-redirects any user still on their initial password to `password/change`
+— unless they pressed "ข้ามไปก่อน", which sets a session-only flag
+(`Auth::postponePasswordChange()`), leaves `must_change_password` in the database untouched, and
+so asks again at the next login.
 Controller docblocks cite the numbered sections of `project/uploads/REDESIGNBRIEF.md`
 (`/** 5.6 รายงานความคืบหน้า */`) — follow the number back to the spec before changing a screen.
 
