@@ -22,6 +22,16 @@ final class PublicController extends Controller
         $pveoTotal = Database::int('SELECT COUNT(*) FROM provincial_vocational_offices');
         $disabled  = $this->disabilityStats($year);
 
+        // ตัวหารร่วมของการ์ดที่เล่าเป็นสัดส่วนได้ — นับเฉพาะที่สำรวจแล้วในปีนี้
+        $surveyed = Database::int(
+            'SELECT COUNT(DISTINCT s.enterprise_id) FROM surveys s WHERE s.survey_year = ?',
+            [$year]
+        );
+        $pveoDone    = $this->pveoSurveyed($year);
+        $teacher     = $this->teacherTrainingPlaces($year);
+        $welfare     = $this->welfarePlaces($year);
+        $ofSurveyed  = 'จาก ' . num($surveyed) . ' แห่งที่สำรวจแล้ว';
+
         $this->view('pub/home', [
             'title' => 'ภาพรวมความร่วมมือทั้งประเทศ',
             'kpis'  => [
@@ -38,24 +48,29 @@ final class PublicController extends Controller
                     'label' => 'ความต้องการรับนักเรียน นักศึกษา รวม',
                     'value' => num($dve['vc'] + $dve['hvc'] + $intern['vc'] + $intern['hvc']),
                     'unit'  => 'คน',
+                    'hint'  => 'ทวิภาคีและฝึกงานรวมกัน',
                 ],
                 [
                     'icon'  => '🤝',
                     'label' => 'ทวิภาคี (ปวช. / ปวส.)',
                     'value' => num($dve['vc']),
-                    'unit'  => 'คน',
+                    'unit'  => 'ปวช.',
                     'extra' => num($dve['hvc']),
-                    'extraUnit' => 'คน',
-                    'hint'  => 'ปวช. / ปวส.',
+                    'extraUnit' => 'ปวส.',
+                    'bar'   => pct($dve['vc'], $dve['vc'] + $dve['hvc'], 0),
+                    'barClass' => 'c1',
+                    'hint'  => 'แถบคือสัดส่วน ปวช.',
                 ],
                 [
                     'icon'  => '🧑‍🏭',
                     'label' => 'ฝึกงาน (ปวช. / ปวส.)',
                     'value' => num($intern['vc']),
-                    'unit'  => 'คน',
+                    'unit'  => 'ปวช.',
                     'extra' => num($intern['hvc']),
-                    'extraUnit' => 'คน',
-                    'hint'  => 'ปวช. / ปวส.',
+                    'extraUnit' => 'ปวส.',
+                    'bar'   => pct($intern['vc'], $intern['vc'] + $intern['hvc'], 0),
+                    'barClass' => 'c3',
+                    'hint'  => 'แถบคือสัดส่วน ปวช.',
                 ],
                 [
                     'icon'  => '♿',
@@ -64,20 +79,28 @@ final class PublicController extends Controller
                     'unit'  => 'แห่ง',
                     'extra' => num($disabled['people']),
                     'extraUnit' => 'คน',
+                    'bar'   => pct($disabled['places'], $surveyed, 0),
+                    'barClass' => 'c5',
+                    'hint'  => $ofSurveyed,
                 ],
                 [
                     'icon'  => '🧑‍🏫',
                     'label' => 'รับครูของสถานศึกษาเข้าฝึกประสบการณ์อาชีพ',
-                    'value' => num($this->teacherTrainingPlaces($year)),
+                    'value' => num($teacher),
                     'unit'  => 'แห่ง',
+                    'bar'   => pct($teacher, $surveyed, 0),
+                    'barClass' => 'c6',
+                    'hint'  => $ofSurveyed,
                 ],
                 [
                     'icon'  => '🗺',
                     'label' => 'สอจ. ที่ออกสำรวจแล้ว',
-                    'value' => num($this->pveoSurveyed($year)),
+                    'value' => num($pveoDone),
                     'unit'  => 'สอจ.',
                     'extra' => num($pveoTotal),
                     'extraUnit' => 'ทั้งหมด',
+                    'bar'   => pct($pveoDone, $pveoTotal, 0),
+                    'barClass' => 'c2',
                 ],
                 [
                     'icon'  => '🏫',
@@ -88,10 +111,14 @@ final class PublicController extends Controller
                 [
                     'icon'  => '🎁',
                     'label' => 'สถานประกอบการที่มีสวัสดิการ',
-                    'value' => num($this->welfarePlaces($year)),
+                    'value' => num($welfare),
                     'unit'  => 'แห่ง',
+                    'bar'   => pct($welfare, $surveyed, 0),
+                    'barClass' => 'c4',
+                    'hint'  => $ofSurveyed,
                 ],
             ],
+            'demandSplit'   => $this->demandSplit($dve, $intern),
             'businessTypes' => $this->businessTypeShare(),
             'topDve'        => $this->topCourses($year, 'dve'),
             'topIntern'     => $this->topCourses($year, 'internship'),
@@ -236,6 +263,31 @@ final class PublicController extends Controller
     }
 
     /**
+     * ข้อมูลของแผนภูมิแท่งเรียงต่อ — ความต้องการทั้งหมดแบ่งเป็นสี่ก้อน
+     * ให้เห็นทันทีว่าสัดส่วนทวิภาคี/ฝึกงาน และ ปวช./ปวส. เอียงไปทางไหน
+     *
+     * @param array{vc: int, hvc: int} $dve
+     * @param array{vc: int, hvc: int} $intern
+     * @return array{total: int, parts: list<array{label: string, value: int, share: float, class: string}>}
+     */
+    private function demandSplit(array $dve, array $intern): array
+    {
+        $parts = [
+            ['label' => 'ทวิภาคี ปวช.', 'value' => $dve['vc'],    'class' => 'c1'],
+            ['label' => 'ทวิภาคี ปวส.', 'value' => $dve['hvc'],   'class' => 'c2'],
+            ['label' => 'ฝึกงาน ปวช.',  'value' => $intern['vc'],  'class' => 'c3'],
+            ['label' => 'ฝึกงาน ปวส.',  'value' => $intern['hvc'], 'class' => 'c4'],
+        ];
+
+        $total = array_sum(array_column($parts, 'value'));
+        foreach ($parts as $i => $part) {
+            $parts[$i]['share'] = (float) (pct($part['value'], $total, 1) ?? 0);
+        }
+
+        return ['total' => $total, 'parts' => $parts];
+    }
+
+    /**
      * การรับผู้พิการ — นับทั้งจำนวนแห่งและจำนวนคนที่ประกาศรับ
      * disability_flag เป็น enum('yes','no') ไม่ใช่ 0/1 ต้องเทียบด้วยสตริง
      *
@@ -330,12 +382,18 @@ final class PublicController extends Controller
                 'label' => (string) $row['label'],
                 'count' => $n,
                 'share' => (float) (pct($n, $total, 0) ?? 0),
+                'class' => 'c' . (count($out) % 8 + 1),
             ];
         }
 
         if ($listed < $total) {
             $rest  = $total - $listed;
-            $out[] = ['label' => 'อื่น ๆ', 'count' => $rest, 'share' => (float) (pct($rest, $total, 0) ?? 0)];
+            $out[] = [
+                'label' => 'อื่น ๆ',
+                'count' => $rest,
+                'share' => (float) (pct($rest, $total, 0) ?? 0),
+                'class' => 'c8',   // "อื่น ๆ" ใช้สีเทากลาง ๆ เสมอ ไม่ปนกับหมวดจริง
+            ];
         }
 
         return $out;
@@ -382,11 +440,17 @@ final class PublicController extends Controller
 
         $max = max(array_map(static fn (array $r): int => (int) $r['total'], $rows));
 
-        return array_map(static fn (array $r): array => [
-            'label' => $r['course_name'] . ' - ' . $r['level'],
-            'total' => (int) $r['total'],
-            // เทียบกับอันดับหนึ่ง เพื่อให้แท่งยาวเต็มกรอบเหมือนกราฟแท่งของระบบเดิม
-            'share' => $max > 0 ? round((int) $r['total'] * 100 / $max) : 0,
-        ], $rows);
+        $out = [];
+        foreach ($rows as $i => $r) {
+            $out[] = [
+                'label' => $r['course_name'] . ' - ' . $r['level'],
+                'total' => (int) $r['total'],
+                // เทียบกับอันดับหนึ่ง เพื่อให้แท่งยาวเต็มกรอบเหมือนกราฟแท่งของระบบเดิม
+                'share' => $max > 0 ? round((int) $r['total'] * 100 / $max) : 0,
+                'class' => 'c' . ($i % 8 + 1),
+            ];
+        }
+
+        return $out;
     }
 }

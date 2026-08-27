@@ -37,9 +37,20 @@ final class Url
         return $url;
     }
 
+    /**
+     * ลิงก์ไฟล์ใน assets/ พร้อมตัวกันแคช
+     *
+     * ต่อ ?v=<เวลาแก้ไขไฟล์> ท้าย URL — เบราว์เซอร์และแคชฝั่งเซิร์ฟเวอร์จะถือว่า
+     * เป็นคนละไฟล์ทันทีที่ deploy สไตล์ใหม่ ไม่ต้องให้ผู้ใช้กด hard refresh เอง
+     */
     public static function asset(string $path): string
     {
-        return self::basePath() . '/assets/' . ltrim($path, '/');
+        $clean = ltrim($path, '/');
+        $url   = self::basePath() . '/assets/' . $clean;
+        $file  = dirname(__DIR__, 2) . '/assets/' . $clean;
+        $stamp = is_file($file) ? filemtime($file) : false;
+
+        return $stamp === false ? $url : $url . '?v=' . $stamp;
     }
 
     /** Current path relative to the app root, e.g. "admin/estates". */
