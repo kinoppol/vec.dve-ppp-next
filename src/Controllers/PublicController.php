@@ -58,8 +58,8 @@ final class PublicController extends Controller
                     'extra' => num($dve['hvc']),
                     'extraUnit' => 'ปวส.',
                     'bar'   => pct($dve['vc'], $dve['vc'] + $dve['hvc'], 0),
-                    'barClass' => 'c1',
-                    'hint'  => 'แถบคือสัดส่วน ปวช.',
+                    'cat' => 1,
+                    'hint'  => 'โดนัทคือสัดส่วน ปวช.',
                 ],
                 [
                     'icon'  => '🧑‍🏭',
@@ -69,8 +69,8 @@ final class PublicController extends Controller
                     'extra' => num($intern['hvc']),
                     'extraUnit' => 'ปวส.',
                     'bar'   => pct($intern['vc'], $intern['vc'] + $intern['hvc'], 0),
-                    'barClass' => 'c3',
-                    'hint'  => 'แถบคือสัดส่วน ปวช.',
+                    'cat' => 3,
+                    'hint'  => 'โดนัทคือสัดส่วน ปวช.',
                 ],
                 [
                     'icon'  => '♿',
@@ -80,7 +80,7 @@ final class PublicController extends Controller
                     'extra' => num($disabled['people']),
                     'extraUnit' => 'คน',
                     'bar'   => pct($disabled['places'], $surveyed, 0),
-                    'barClass' => 'c5',
+                    'cat' => 5,
                     'hint'  => $ofSurveyed,
                 ],
                 [
@@ -89,7 +89,7 @@ final class PublicController extends Controller
                     'value' => num($teacher),
                     'unit'  => 'แห่ง',
                     'bar'   => pct($teacher, $surveyed, 0),
-                    'barClass' => 'c6',
+                    'cat' => 6,
                     'hint'  => $ofSurveyed,
                 ],
                 [
@@ -100,7 +100,7 @@ final class PublicController extends Controller
                     'extra' => num($pveoTotal),
                     'extraUnit' => 'ทั้งหมด',
                     'bar'   => pct($pveoDone, $pveoTotal, 0),
-                    'barClass' => 'c2',
+                    'cat' => 2,
                 ],
                 [
                     'icon'  => '🏫',
@@ -114,7 +114,7 @@ final class PublicController extends Controller
                     'value' => num($welfare),
                     'unit'  => 'แห่ง',
                     'bar'   => pct($welfare, $surveyed, 0),
-                    'barClass' => 'c4',
+                    'cat' => 4,
                     'hint'  => $ofSurveyed,
                 ],
             ],
@@ -273,10 +273,10 @@ final class PublicController extends Controller
     private function demandSplit(array $dve, array $intern): array
     {
         $parts = [
-            ['label' => 'ทวิภาคี ปวช.', 'value' => $dve['vc'],    'class' => 'c1'],
-            ['label' => 'ทวิภาคี ปวส.', 'value' => $dve['hvc'],   'class' => 'c2'],
-            ['label' => 'ฝึกงาน ปวช.',  'value' => $intern['vc'],  'class' => 'c3'],
-            ['label' => 'ฝึกงาน ปวส.',  'value' => $intern['hvc'], 'class' => 'c4'],
+            ['label' => 'ทวิภาคี ปวช.', 'value' => $dve['vc'],    'cat' => 1],
+            ['label' => 'ทวิภาคี ปวส.', 'value' => $dve['hvc'],   'cat' => 2],
+            ['label' => 'ฝึกงาน ปวช.',  'value' => $intern['vc'],  'cat' => 3],
+            ['label' => 'ฝึกงาน ปวส.',  'value' => $intern['hvc'], 'cat' => 4],
         ];
 
         $total = array_sum(array_column($parts, 'value'));
@@ -382,7 +382,7 @@ final class PublicController extends Controller
                 'label' => (string) $row['label'],
                 'count' => $n,
                 'share' => (float) (pct($n, $total, 0) ?? 0),
-                'class' => 'c' . (count($out) % 8 + 1),
+                'cat' => count($out) % 8 + 1,
             ];
         }
 
@@ -392,7 +392,7 @@ final class PublicController extends Controller
                 'label' => 'อื่น ๆ',
                 'count' => $rest,
                 'share' => (float) (pct($rest, $total, 0) ?? 0),
-                'class' => 'c8',   // "อื่น ๆ" ใช้สีเทากลาง ๆ เสมอ ไม่ปนกับหมวดจริง
+                'cat' => 8,   // "อื่น ๆ" ใช้สีเทากลาง ๆ เสมอ ไม่ปนกับหมวดจริง
             ];
         }
 
@@ -447,7 +447,7 @@ final class PublicController extends Controller
                 'total' => (int) $r['total'],
                 // เทียบกับอันดับหนึ่ง เพื่อให้แท่งยาวเต็มกรอบเหมือนกราฟแท่งของระบบเดิม
                 'share' => $max > 0 ? round((int) $r['total'] * 100 / $max) : 0,
-                'class' => 'c' . ($i % 8 + 1),
+                'cat' => $i % 8 + 1,
             ];
         }
 

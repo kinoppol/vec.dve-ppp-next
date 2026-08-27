@@ -131,17 +131,22 @@ html[data-theme="dark"] .btn-primary:hover { background: var(--brand-300); borde
 .section-title { margin: var(--s-6) 0 var(--s-3); font-size: 14px; color: var(--ink-2); }
 
 /* -------------------------------------------------------------- KPI cards -- */
+/* การ์ดมีทั้งตัวเลข ป้ายกำกับยาว ๆ และแผนภูมิ จึงต้องการช่องไฟมากกว่าเดิม
+   ไม่งั้นการ์ดที่อยู่ติดกันจะดูเหมือนกล่องเดียวกัน */
 .kpi-row {
-  display: grid; gap: var(--s-4);
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  margin-bottom: var(--s-4);
+  display: grid; gap: var(--s-6);
+  grid-template-columns: repeat(auto-fit, minmax(228px, 1fr));
+  margin-bottom: var(--s-6);
 }
 .kpi {
   display: block; width: 100%; text-align: left;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
-  box-shadow: var(--shadow); padding: var(--s-4); cursor: pointer;
+  box-shadow: var(--shadow); padding: var(--s-4) var(--s-4) 18px; cursor: pointer;
   font: inherit; color: inherit; text-decoration: none;
 }
+/* ตัวเลขอยู่ซ้าย โดนัทอยู่ขวา และไม่บีบกันเมื่อการ์ดแคบ */
+.kpi-body { display: flex; align-items: center; gap: var(--s-3); }
+.kpi-main { min-width: 0; flex: 1 1 auto; }
 .kpi:hover { border-color: var(--brand-200); text-decoration: none; }
 .kpi.is-active { border-color: var(--brand); box-shadow: 0 0 0 2px var(--brand-soft); }
 .kpi { cursor: default; }
@@ -170,16 +175,40 @@ a.kpi, button.kpi { cursor: pointer; }
 .bar-head .spacer { flex: 1 1 auto; }
 .bar-num  { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
 /* สีประจำแท่ง — วนแปดสี
-   .cN > span ระบายเฉพาะตัวแท่งข้างใน (รางยังเป็นสีเทาเดิม)
-   span.cN ระบายตัวเองสำหรับก้อนใน .stack และจุดใน .legend */
-.c1 > span, span.c1 { background: var(--cat-1); }
-.c2 > span, span.c2 { background: var(--cat-2); }
-.c3 > span, span.c3 { background: var(--cat-3); }
-.c4 > span, span.c4 { background: var(--cat-4); }
-.c5 > span, span.c5 { background: var(--cat-5); }
-.c6 > span, span.c6 { background: var(--cat-6); }
-.c7 > span, span.c7 { background: var(--cat-7); }
-.c8 > span, span.c8 { background: var(--cat-8); }
+   ต้องเขียน .progress.cN ให้ครบทั้งสองคลาส ไม่ใช่ .cN เฉย ๆ เพราะกฎสีเริ่มต้น
+   .progress > span อยู่ท้ายไฟล์กว่า ถ้า specificity เท่ากันสีเขียวจะชนะ
+   span.cN ใช้กับก้อนใน .stack, จุดใน .legend และวงใน .donut */
+.progress.c1 > span, span.c1 { background: var(--cat-1); }
+.progress.c2 > span, span.c2 { background: var(--cat-2); }
+.progress.c3 > span, span.c3 { background: var(--cat-3); }
+.progress.c4 > span, span.c4 { background: var(--cat-4); }
+.progress.c5 > span, span.c5 { background: var(--cat-5); }
+.progress.c6 > span, span.c6 { background: var(--cat-6); }
+.progress.c7 > span, span.c7 { background: var(--cat-7); }
+.progress.c8 > span, span.c8 { background: var(--cat-8); }
+
+/* ------------------------------------------------------------ แผนภูมิโดนัท -- */
+/* วาดด้วย conic-gradient แล้วเจาะรูตรงกลางด้วย mask — CSS ล้วน ไม่มี JS
+   เบราว์เซอร์เก่าที่ไม่รองรับ mask จะเห็นเป็นวงกลมพาย ซึ่งยังอ่านได้อยู่ */
+.donut-fig { position: relative; flex: none; }
+.donut {
+  border-radius: 50%;
+  -webkit-mask: radial-gradient(circle, transparent 57%, #000 58%);
+          mask: radial-gradient(circle, transparent 57%, #000 58%);
+}
+.donut-lg { width: 168px; height: 168px; }
+.donut-sm { width: 62px;  height: 62px; }
+.donut-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; line-height: 1.25; pointer-events: none;
+}
+.donut-lg .donut-center strong { font-size: 20px; }
+.donut-sm .donut-center strong { font-size: 13px; }
+.donut-center .muted { font-size: 11px; }
+.chart-row { display: flex; align-items: center; gap: var(--s-6); flex-wrap: wrap; }
+.chart-row .legend { flex: 1 1 260px; margin-top: 0; }
+.chart-row .legend { flex-direction: column; gap: var(--s-2); align-items: flex-start; }
 
 /* แผนภูมิแท่งเรียงต่อ (stacked) — ใช้เทียบสัดส่วนภายในก้อนเดียว */
 .stack { display: flex; height: 16px; border-radius: 999px; overflow: hidden; background: var(--mute-bg); }
@@ -431,5 +460,9 @@ main.content { flex: 1; min-width: 0; padding: var(--s-6); }
   tr, td, th { page-break-inside: avoid; }
   thead { display: table-header-group; }
   th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* กราฟทั้งหมดเป็นพื้นหลัง เบราว์เซอร์จะไม่พิมพ์ให้ถ้าไม่บังคับ */
+  .donut, .stack > span, .progress > span, .legend-dot {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
   @page { size: A4 landscape; margin: 12mm; }
 }
