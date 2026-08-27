@@ -171,7 +171,6 @@ if ($post && $step === 'migrate') {
 if ($post && $step === 'admin') {
     $username = trim((string) ($_POST['username'] ?? ''));
     $fullName = trim((string) ($_POST['full_name'] ?? ''));
-    $email    = trim((string) ($_POST['email'] ?? ''));
     $password = (string) ($_POST['password'] ?? '');
     $confirm  = (string) ($_POST['password_confirm'] ?? '');
 
@@ -186,9 +185,6 @@ if ($post && $step === 'admin') {
     }
     if ($password !== '' && $password === $username) {
         $errors[] = 'รหัสผ่านต้องไม่เหมือนกับชื่อผู้ใช้';
-    }
-    if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = 'รูปแบบอีเมลไม่ถูกต้อง';
     }
 
     if ($errors === []) {
@@ -524,10 +520,6 @@ $stepIndex = $stepIndex === false ? 0 : (int) $stepIndex;
       <label class="field">
         <span>ยืนยันรหัสผ่าน <em class="req">*</em></span>
         <input class="input" type="password" name="password_confirm" required minlength="8" autocomplete="new-password">
-      </label>
-      <label class="field field-wide">
-        <span>อีเมล</span>
-        <input class="input" type="email" name="email" value="<?= e((string) ($_POST['email'] ?? '')) ?>">
       </label>
       <div class="form-actions field-wide">
         <a class="btn btn-ghost" href="install.php?step=migrate">ย้อนกลับ</a>
