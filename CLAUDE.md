@@ -8,8 +8,13 @@ A **PHP 8 / MariaDB 10 web application** implementing the DVE PPP Management Sys
 (Thai vocational-education ↔ industrial-estate partnership tracking, under สอศ./OVEC),
 built from the design handoff bundle that still lives in `project/`.
 
-There is no Composer, no build step, and no test suite — it is plain PHP with a hand-rolled
-autoloader. All user-facing text is Thai.
+There is no Composer, no build step, no test suite, and **no JavaScript files** — it is plain
+PHP with a hand-rolled autoloader, server-rendered forms, and one stylesheet. All user-facing
+text is Thai.
+
+`README.md` is the *design-tool handoff* README that shipped with the bundle, not documentation
+for this app — it instructs a coding agent to build the prototype from scratch. That work is
+done; ignore its instructions and read this file instead.
 
 ## Running it
 
@@ -22,16 +27,22 @@ start "" http://localhost/vec.dve-ppp-next/install.php
 For a quick local run without Apache (base path becomes `/`):
 
 ```bash
-php -S 127.0.0.1:8765 _devrouter.php
+/c/xampp/php/php.exe -S 127.0.0.1:8765 _devrouter.php
 ```
 
 `_devrouter.php` is not committed — it is three lines: serve real files, else `require index.php`.
 
-Syntax-check everything before committing:
+`php` is not on PATH; the XAMPP binary is `C:\xampp\php\php.exe` (PHP 8.2). Syntax-check
+everything before committing — this prints nothing when the tree is clean:
 
 ```bash
-find . -name "*.php" -not -path "./project/*" -exec php -l {} \;
+find . -name "*.php" -not -path "./project/*" -print0 | xargs -0 -n1 /c/xampp/php/php.exe -l | grep -v "^No syntax errors"
 ```
+
+**Installer.** `install.php` is standalone (it requires `src/bootstrap.php`, never `index.php`)
+and walks five steps: requirements → database → migrate → admin → done. It writes
+`config/config.php` and `storage/installed.lock`; once the lock exists the installer demands the
+admin password to re-enter. Deleting `storage/installed.lock` is the documented reset path.
 
 ## Architecture
 
@@ -52,6 +63,41 @@ template's variables from a stack. Never pass `get_defined_vars()` into a view: 
 
 **Controllers** extend `Controller`, whose `view()` populates the shell (top bar, sidebar, year,
 active estate) and force-redirects any user still on their initial password to `password/change`.
+Controller docblocks cite the numbered sections of `project/uploads/REDESIGNBRIEF.md`
+(`/** 5.6 รายงานความคืบหน้า */`) — follow the number back to the spec before changing a screen.
+
+### Adding a screen
+
+Four edits, in this order, or the page will 404, be publicly reachable, or render without chrome:
+
+1. Route in `index.php` — `$router->get('pveo/thing', [XController::class, 'thing'])`.
+   Patterns take `{placeholders}`; handlers are `[Class, 'method']`.
+2. Controller action — **first line is the guard**: `Auth::requireAdmin()` / `requirePveo()` /
+   `requireLogin()`. The router has no middleware layer, so an action with no guard is public.
+3. View under `views/`, rendered via `$this->view('pveo/thing', [...])` (not `View::display`,
+   which skips the shell).
+4. Sidebar entry in `Controller::sidebar()`, and pass a matching `'nav' => 'thing'` so the item
+   highlights.
+
+### Conventions that bite
+
+- **Every POST needs `Csrf::field()`.** `Csrf::verify()` runs globally in `index.php` and answers
+  419 otherwise — that includes logout, the theme toggle, and the year/estate switchers.
+- **Never write a literal URL path.** The app is deployed in a sub-folder, so links go through
+  `url('admin/estates')` / `asset('css/app.css')`, and `Url::redirect()` / `Url::back()` for
+  responses. `Url::withQuery()` preserves the current query while changing one parameter.
+- **Queries go through the `Database` statics** — `all()`, `first()`, `value()`, `int()`,
+  `run()`. All are prepared; there is no query builder and no ORM.
+- **No JavaScript.** `assets/` holds `css/app.css` and nothing else, and no view contains a
+  `<script>` tag. Interactivity is POST forms; the most JS anything gets is
+  `onchange="this.form.submit()"` on the top-bar pickers. Dark mode is a server-set cookie
+  (`dveppp_theme`) rendered as `<html data-theme>`, not a client toggle. Keep it that way.
+- **Public share links reuse the admin renderers read-only.** `AdminController::renderEstates()`
+  and `renderUploads()` take `($template, $layout, $readOnly)`; `PublicController::shared()`
+  calls them with the `public` layout after validating a `share_links` token. A new admin screen
+  that should be shareable follows the same split rather than growing a public duplicate.
+- Settings live in `app_settings` behind `Settings::get/int/bool`; `Settings::DEFAULTS` is the
+  authoritative key list and `Settings::put()` invalidates the static cache.
 
 ### Ambient state every screen filters by
 
@@ -67,10 +113,15 @@ active estate) and force-redirects any user still on their initial password to `
 SHA-256 checksum. A `-- @DOWN` line splits the file into up/rollback sections; everything below
 it is the rollback. The `Migrator` honours `DELIMITER` blocks, so routines and triggers work.
 
+Current set: `0001` reference tables → `0002` core domain → `0003` auth hardening + app tables →
+`0004` two views (`v_estate_progress`, `v_pveo_progress`), two procedures
+(`SyncPveoEstateAssignments`, `RecalcEnterpriseCompleteness`), three triggers on `surveys` /
+`enterprise_completeness` → `0005` seed reference data.
+
 Four states appear in the admin UI at `admin/migrations`: `applied`, `pending`,
 `drifted` (file edited after it ran — resync accepts the new checksum), and `missing` (row with
 no file). Admins can run all pending, run one, roll one back (typing the version to confirm),
-and view the SQL first.
+and view the SQL first. Migration actions are blocked while impersonating.
 
 MariaDB does not make DDL transactional, so a mid-file failure leaves earlier statements applied.
 Each migration must therefore be self-contained. Prefer adding a new migration over editing one
@@ -85,11 +136,13 @@ ones, so the legacy system can still read the same tables.
 Things that will bite you:
 
 - `provincial_vocational_offices.college_password` is plaintext and equals `college_code` in
-  production. `Auth::attemptPveo()` accepts it once, then forces a password reset.
+  production. `Auth::attemptPveo()` accepts it once, then forces a password reset. Admin rows
+  may hold bcrypt, md5, sha1, or plaintext; `Auth::verifyAgainst()` covers all four and rehashes
+  to `PASSWORD_DEFAULT` on successful login.
 - `topics`/`replies` store `created_at` as **varchar** and images as base64.
 - Estates may have a null `province_id` — display as "ไม่ระบุจังหวัด".
 - **Progress can exceed 100%** (production shows 230.92%). Render the overflow as an explicit
-  warning badge; never clamp the number itself, only the bar width.
+  warning badge; never clamp the number itself, only the bar width (`min(100, $p)`).
 - `SyncPveoEstateAssignments(year)` recomputes surveyed counts but must not overwrite quotas
   flagged `is_manual = 1` — that flag exists because several PVEOs can share one estate.
 - `utf8mb4_thai_520_w2` is what production uses; `Requirements::pickCollation()` falls back
@@ -101,13 +154,19 @@ All tokens live in `assets/css/app.css`; take every color from a CSS variable, n
 
 - Oxblood brand ramp, primary `--brand-700` in light mode lifting to `--brand-400` in dark.
 - **Status colors must stay visually distinct from the brand red** — never dark red for errors —
-  and every status carries an icon, never color alone (color-blind users).
+  and every status carries an icon, never color alone (color-blind users). Use the
+  `--ok` / `--warn` / `--err` / `--info` variables with their `-bg` companions.
 - Sarabun throughout including numerals; Thai body text needs `line-height` ≥ 1.6.
 - Wide tables need the mobile card variant (`.table-cards` + `.card-list`); PVEO staff enter data
   on phones in the field.
 - Print styles are a real requirement (A4 landscape) — users print reports for government
   submission. Use `.no-print` / `.print-only`.
 - Buddhist-Era years, `dd/mm/yyyy` dates: use the `thai_date()` helper.
+
+**Template helpers** (`src/Support/helpers.php`): `e()` escape, `url()`, `asset()`,
+`num()` thousands separator, `pct()` (returns null on an unusable denominator — render `—`),
+`thai_date()`, `be_year()`, `file_size_human()`, `str_excerpt()`. Missing values render as `—`,
+not `0` or blank.
 
 ## Design source
 
